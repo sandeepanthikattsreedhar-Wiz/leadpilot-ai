@@ -1,6 +1,6 @@
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
-import SchedulerPage from "./pages/SchedulerPage";
+import MeetingsPage from "./pages/MeetingsPage";
 
 export default function App() {
   return (
@@ -11,7 +11,7 @@ export default function App() {
         <Header />
 
         <div className="p-6">
-          <SchedulerPage />
+          <MeetingsPage />
         </div>
       </div>
     </div>
