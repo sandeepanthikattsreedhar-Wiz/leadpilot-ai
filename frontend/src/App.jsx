@@ -1,6 +1,6 @@
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
-import ReportsPage from "./pages/ReportsPage";
+import NotificationsPage from "./pages/NotificationsPage";
 
 export default function App() {
   return (
@@ -11,7 +11,7 @@ export default function App() {
         <Header />
 
         <div className="p-6">
-          <ReportsPage />
+          <NotificationsPage />
         </div>
       </div>
     </div>

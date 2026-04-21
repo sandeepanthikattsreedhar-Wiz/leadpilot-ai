@@ -1,5 +1,5 @@
 export default function Sidebar() {
-  const menu = ["Dashboard", "Tasks", "Scheduler", "Meetings", "Reports"];
+  const menu = ["Dashboard", "Tasks", "Scheduler", "Meetings", "Reports","Notifications"];
 
   return (
     <div className="w-64 h-screen bg-slate-900 text-white p-5">
