@@ -1,5 +1,13 @@
+import { Routes, Route } from "react-router-dom";
+
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
+
+import HomePage from "./pages/HomePage";
+import TasksPage from "./pages/TasksPage";
+import SchedulerPage from "./pages/SchedulerPage";
+import MeetingsPage from "./pages/MeetingsPage";
+import ReportsPage from "./pages/ReportsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 
 export default function App() {
@@ -11,7 +19,17 @@ export default function App() {
         <Header />
 
         <div className="p-6">
-          <NotificationsPage />
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/scheduler" element={<SchedulerPage />} />
+            <Route path="/meetings" element={<MeetingsPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route
+              path="/notifications"
+              element={<NotificationsPage />}
+            />
+          </Routes>
         </div>
       </div>
     </div>

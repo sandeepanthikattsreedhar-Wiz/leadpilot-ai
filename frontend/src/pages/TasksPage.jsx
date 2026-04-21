@@ -1,36 +1,44 @@
 import { useEffect, useState } from "react";
 import TaskForm from "../components/TaskForm";
 import TaskList from "../components/TaskList";
+import api from "../api";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
 
+  const loadTasks = async () => {
+    const res = await api.get("/tasks");
+    setTasks(res.data);
+  };
+
   useEffect(() => {
-    const saved = localStorage.getItem("tasks");
-    if (saved) setTasks(JSON.parse(saved));
+    loadTasks();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
-
-  const addTask = (task) => setTasks([task, ...tasks]);
+  const addTask = async (task) => {
+    await api.post("/tasks", task);
+    loadTasks();
+  };
 
   const updateStatus = (id) => {
     setTasks(
       tasks.map((task) =>
-        task.id === id ? { ...task, status: "Completed" } : task
+        task.id === id
+          ? { ...task, status: "Completed" }
+          : task
       )
     );
   };
 
-  const deleteTask = (id) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+  const deleteTask = async (id) => {
+    await api.delete(`/tasks/${id}`);
+    loadTasks();
   };
 
   return (
     <div className="space-y-6">
       <TaskForm addTask={addTask} />
+
       <TaskList
         tasks={tasks}
         updateStatus={updateStatus}
