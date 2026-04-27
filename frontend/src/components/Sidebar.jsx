@@ -10,6 +10,7 @@ const menu = [
   { name: "Performance", path: "/performance" },
   { name: "Docs AI", path: "/docs-ai" },
   { name: "Follow Up", path: "/follow-up" },
+  { name: "Capacity", path: "/capacity" },
 ];
 
 export default function Sidebar() {

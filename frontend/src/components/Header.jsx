@@ -13,6 +13,7 @@ export default function Header() {
     "/performance": "Performance",
     "/docs-ai": "AI Document Assistant",
     "/follow-up": "Smart Follow-Up Center",
+    "/capacity": "Team Capacity Planner",
   };
 
   const title = titleMap[location.pathname] || "LeadPilot AI";
