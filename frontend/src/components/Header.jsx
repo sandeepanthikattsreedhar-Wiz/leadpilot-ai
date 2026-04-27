@@ -11,6 +11,7 @@ export default function Header() {
     "/reports": "Reports",
     "/notifications": "Notifications",
     "/performance": "Performance",
+    "/docs-ai": "AI Document Assistant",
   };
 
   const title = titleMap[location.pathname] || "LeadPilot AI";

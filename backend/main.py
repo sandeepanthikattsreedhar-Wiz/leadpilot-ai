@@ -2,9 +2,11 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from ai_service import ask_ai
 
 from database import SessionLocal, engine, Base
 from models import TaskDB
+from pydantic import BaseModel
 
 Base.metadata.create_all(bind=engine)
 
@@ -75,3 +77,25 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
         db.commit()
 
     return {"message": "Deleted"}
+
+class AskRequest(BaseModel):
+    text: str
+
+@app.post("/ask-ai")
+def ask_real_ai(req: AskRequest):
+    prompt = f"""
+    Analyze this requirement document.
+
+    Give:
+    1. Summary
+    2. Key tasks
+    3. Risks
+    4. Simple explanation for project lead
+
+    Document:
+    {req.text}
+    """
+
+    answer = ask_ai(prompt)
+
+    return {"result": answer}
