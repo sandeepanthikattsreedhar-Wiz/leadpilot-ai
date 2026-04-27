@@ -1,110 +1,118 @@
-import {
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-
-import InsightCard from "../components/InsightCard";
+import { useState } from "react";
 
 export default function ReportsPage() {
-  const taskData = [
-    { name: "Mon", completed: 4, pending: 3 },
-    { name: "Tue", completed: 6, pending: 2 },
-    { name: "Wed", completed: 5, pending: 4 },
-    { name: "Thu", completed: 8, pending: 1 },
-    { name: "Fri", completed: 7, pending: 2 },
-  ];
+  const [reportType, setReportType] = useState("weekly");
 
-  const teamLoad = [
-    { name: "Rahul", value: 2 },
-    { name: "Meena", value: 4 },
-    { name: "Arjun", value: 1 },
-    { name: "Divya", value: 3 },
-  ];
+  const reports = {
+    weekly: {
+      title: "Weekly Team Report",
+      body: `
+Team completed 18 planned tasks this week.
+3 items moved to next sprint.
+Overall delivery health is stable.
+One resource needs bandwidth support.
+Productivity improved by 12%.
+      `,
+    },
 
-  const COLORS = ["#0ea5e9", "#22c55e", "#f59e0b", "#ef4444"];
+    client: {
+      title: "Client Status Report",
+      body: `
+Purchase module workflow completed.
+UAT fixes in progress.
+Dashboard enhancements started.
+Expected milestone closure by Friday.
+Awaiting API access from client team.
+      `,
+    },
+
+    risks: {
+      title: "Risk Summary Report",
+      body: `
+1. ERP API delay may impact integration timeline.
+2. One engineer overloaded.
+3. Pending UAT signoff from client.
+4. Scope change request under review.
+      `,
+    },
+
+    productivity: {
+      title: "Productivity Report",
+      body: `
+Top performer: Arjun
+Average closure rate: 89%
+Pending tasks reduced by 15%
+Follow-up response rate improved
+Lead efficiency score: 93%
+      `,
+    },
+  };
+
+  const current = reports[reportType];
+
+  const printPage = () => {
+    window.print();
+  };
 
   return (
     <div className="space-y-6">
-      <div className="grid md:grid-cols-4 gap-5">
-        <div className="bg-white p-5 rounded-xl shadow">
-          <p className="text-gray-500">Tasks Completed</p>
-          <h2 className="text-3xl font-bold">30</h2>
-        </div>
+      <div className="bg-white rounded-xl shadow p-5">
+        <h2 className="text-xl font-semibold mb-4">
+          Executive Reports Center
+        </h2>
 
-        <div className="bg-white p-5 rounded-xl shadow">
-          <p className="text-gray-500">Pending Tasks</p>
-          <h2 className="text-3xl font-bold">12</h2>
-        </div>
+        <div className="grid md:grid-cols-4 gap-4">
+          <button
+            onClick={() => setReportType("weekly")}
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Weekly
+          </button>
 
-        <div className="bg-white p-5 rounded-xl shadow">
-          <p className="text-gray-500">Team Utilization</p>
-          <h2 className="text-3xl font-bold">78%</h2>
-        </div>
+          <button
+            onClick={() => setReportType("client")}
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Client
+          </button>
 
-        <div className="bg-white p-5 rounded-xl shadow">
-          <p className="text-gray-500">Your Efficiency</p>
-          <h2 className="text-3xl font-bold">91%</h2>
-        </div>
-      </div>
+          <button
+            onClick={() => setReportType("risks")}
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Risks
+          </button>
 
-      <div className="grid xl:grid-cols-2 gap-6">
-        <div className="bg-white p-5 rounded-xl shadow h-80">
-          <h3 className="font-semibold mb-4">Weekly Task Trend</h3>
-
-          <ResponsiveContainer width="100%" height="90%">
-            <BarChart data={taskData}>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="completed" />
-              <Bar dataKey="pending" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl shadow h-80">
-          <h3 className="font-semibold mb-4">Engineer Workload</h3>
-
-          <ResponsiveContainer width="100%" height="90%">
-            <PieChart>
-              <Pie
-                data={teamLoad}
-                dataKey="value"
-                outerRadius={100}
-                label
-              >
-                {teamLoad.map((entry, index) => (
-                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          <button
+            onClick={() => setReportType("productivity")}
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Productivity
+          </button>
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-5">
-        <InsightCard
-          title="AI Insight"
-          text="Meena is overloaded. Reassign 1 task this week."
-        />
+      <div className="bg-white rounded-xl shadow p-8 print:shadow-none">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-2xl font-bold">
+            {current.title}
+          </h3>
 
-        <InsightCard
-          title="AI Suggestion"
-          text="Schedule client follow-up today for delayed project Alpha ERP."
-        />
+          <button
+            onClick={printPage}
+            className="bg-green-600 text-white px-4 py-2 rounded print:hidden"
+          >
+            Print / Save PDF
+          </button>
+        </div>
 
-        <InsightCard
-          title="Performance Alert"
-          text="Your completion rate improved 12% over last week."
-        />
+        <div className="whitespace-pre-line leading-8 text-gray-700">
+          {current.body}
+        </div>
+
+        <div className="mt-10 border-t pt-4 text-sm text-gray-500">
+          Generated by LeadPilot AI
+        </div>
       </div>
     </div>
   );

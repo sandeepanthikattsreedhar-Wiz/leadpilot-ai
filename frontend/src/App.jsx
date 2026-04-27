@@ -14,6 +14,7 @@ import DocumentPage from "./pages/DocumentPage";
 import FollowUpPage from "./pages/FollowUpPage";
 import CapacityPage from "./pages/CapacityPage";
 
+
 export default function App() {
   return (
     <div className="flex">
