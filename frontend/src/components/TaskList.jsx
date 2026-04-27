@@ -1,4 +1,9 @@
-export default function TaskList({ tasks, updateStatus, deleteTask }) {
+export default function TaskList({
+  tasks,
+  updateStatus,
+  deleteTask,
+  startEdit,
+}) {
   const color = {
     High: "bg-red-100 text-red-700",
     Medium: "bg-yellow-100 text-yellow-700",
@@ -17,8 +22,12 @@ export default function TaskList({ tasks, updateStatus, deleteTask }) {
           >
             <div>
               <h3 className="font-semibold">{task.title}</h3>
-              <p className="text-sm text-gray-500">Owner: {task.owner}</p>
-              <p className="text-sm">Status: {task.status}</p>
+              <p className="text-sm text-gray-500">
+                Owner: {task.owner}
+              </p>
+              <p className="text-sm">
+                {task.status}
+              </p>
             </div>
 
             <div className="flex gap-2 items-center">
@@ -26,11 +35,20 @@ export default function TaskList({ tasks, updateStatus, deleteTask }) {
                 {task.priority}
               </span>
 
+              {task.status !== "Completed" && (
+                <button
+                  onClick={() => updateStatus(task)}
+                  className="bg-blue-600 text-white px-3 py-1 rounded"
+                >
+                  Done
+                </button>
+              )}
+
               <button
-                onClick={() => updateStatus(task.id)}
-                className="bg-blue-600 text-white px-3 py-1 rounded"
+                onClick={() => startEdit(task)}
+                className="bg-amber-500 text-white px-3 py-1 rounded"
               >
-                Done
+                Edit
               </button>
 
               <button
