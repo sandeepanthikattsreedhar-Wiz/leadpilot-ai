@@ -10,6 +10,7 @@ import MeetingsPage from "./pages/MeetingsPage";
 import ReportsPage from "./pages/ReportsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import PerformancePage from "./pages/PerformancePage";
+import DocumentPage from "./pages/DocumentPage";
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
               element={<NotificationsPage />}
             />
             <Route path="/performance" element={<PerformancePage />} />
+            <Route path="/docs-ai" element={<DocumentPage />} />
           </Routes>
         </div>
       </div>
