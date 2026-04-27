@@ -7,6 +7,7 @@ const menu = [
   { name: "Meetings", path: "/meetings" },
   { name: "Reports", path: "/reports" },
   { name: "Notifications", path: "/notifications" },
+  { name: "Performance", path: "/performance" },
 ];
 
 export default function Sidebar() {

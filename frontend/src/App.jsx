@@ -9,6 +9,7 @@ import SchedulerPage from "./pages/SchedulerPage";
 import MeetingsPage from "./pages/MeetingsPage";
 import ReportsPage from "./pages/ReportsPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import PerformancePage from "./pages/PerformancePage";
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
               path="/notifications"
               element={<NotificationsPage />}
             />
+            <Route path="/performance" element={<PerformancePage />} />
           </Routes>
         </div>
       </div>

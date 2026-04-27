@@ -10,6 +10,7 @@ export default function Header() {
     "/meetings": "Meetings",
     "/reports": "Reports",
     "/notifications": "Notifications",
+    "/performance": "Performance",
   };
 
   const title = titleMap[location.pathname] || "LeadPilot AI";
