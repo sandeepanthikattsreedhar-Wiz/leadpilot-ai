@@ -11,6 +11,7 @@ const menu = [
   { name: "Docs AI", path: "/docs-ai" },
   { name: "Follow Up", path: "/follow-up" },
   { name: "Capacity", path: "/capacity" },
+  { name: "Reports", path: "/reports" },
 ];
 
 export default function Sidebar() {

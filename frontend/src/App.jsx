@@ -15,6 +15,7 @@ import FollowUpPage from "./pages/FollowUpPage";
 import CapacityPage from "./pages/CapacityPage";
 
 
+
 export default function App() {
   return (
     <div className="flex">
@@ -30,14 +31,11 @@ export default function App() {
             <Route path="/scheduler" element={<SchedulerPage />} />
             <Route path="/meetings" element={<MeetingsPage />} />
             <Route path="/reports" element={<ReportsPage />} />
-            <Route
-              path="/notifications"
-              element={<NotificationsPage />}
-            />
             <Route path="/performance" element={<PerformancePage />} />
             <Route path="/docs-ai" element={<DocumentPage />} />
             <Route path="/follow-up" element={<FollowUpPage />} />
             <Route path="/capacity" element={<CapacityPage />} />
+            <Route path="/notifications" element={<NotificationsPage />}/>
           </Routes>
         </div>
       </div>

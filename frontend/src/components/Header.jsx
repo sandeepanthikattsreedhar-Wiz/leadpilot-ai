@@ -14,6 +14,7 @@ export default function Header() {
     "/docs-ai": "AI Document Assistant",
     "/follow-up": "Smart Follow-Up Center",
     "/capacity": "Team Capacity Planner",
+    "/notifications": "Notification Intelligence Hub",
   };
 
   const title = titleMap[location.pathname] || "LeadPilot AI";
