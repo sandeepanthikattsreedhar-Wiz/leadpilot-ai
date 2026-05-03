@@ -5,13 +5,12 @@ const menu = [
   { name: "Tasks", path: "/tasks" },
   { name: "Scheduler", path: "/scheduler" },
   { name: "Meetings", path: "/meetings" },
-  { name: "Reports", path: "/reports" },
-  { name: "Notifications", path: "/notifications" },
   { name: "Performance", path: "/performance" },
   { name: "Docs AI", path: "/docs-ai" },
   { name: "Follow Up", path: "/follow-up" },
   { name: "Capacity", path: "/capacity" },
   { name: "Reports", path: "/reports" },
+  { name: "Insights", path: "/insights" },
 ];
 
 export default function Sidebar() {
@@ -34,8 +33,10 @@ export default function Sidebar() {
             >
               {item.name}
             </NavLink>
+            
           </li>
         ))}
+        
       </ul>
     </div>
   );

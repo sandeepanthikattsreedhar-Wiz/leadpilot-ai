@@ -1,18 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function MeetingsPage() {
-  const [meetings, setMeetings] = useState([
-    {
-      id: 1,
-      title: "Client Progress Review",
-      time: "1:00 PM",
-      owner: "Sandeep",
-      agenda: "Review milestones and risks",
-      notes: "",
-      score: 88,
-    },
-  ]);
-
+  const [meetings, setMeetings] = useState([]);
   const [form, setForm] = useState({
     title: "",
     time: "",
@@ -20,18 +9,34 @@ export default function MeetingsPage() {
     agenda: "",
   });
 
-  const addMeeting = () => {
+  const [notesInput, setNotesInput] = useState({});
+
+  useEffect(() => {
+    loadMeetings();
+
+    const timer = setInterval(loadMeetings, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const loadMeetings = async () => {
+    const res = await fetch("http://127.0.0.1:8000/meetings");
+    const data = await res.json();
+    setMeetings(data);
+  };
+
+  // -------------------------
+  // ADD MEETING
+  // -------------------------
+  const addMeeting = async () => {
     if (!form.title || !form.time) return;
 
-    setMeetings([
-      ...meetings,
-      {
-        id: Date.now(),
-        ...form,
-        notes: "",
-        score: 80,
+    await fetch("http://127.0.0.1:8000/meetings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    ]);
+      body: JSON.stringify(form),
+    });
 
     setForm({
       title: "",
@@ -39,40 +44,43 @@ export default function MeetingsPage() {
       owner: "",
       agenda: "",
     });
+
+    loadMeetings();
   };
 
-  const updateNotes = (id, value) => {
-    setMeetings(
-      meetings.map((m) =>
-        m.id === id ? { ...m, notes: value } : m
-      )
-    );
-  };
+  // -------------------------
+  // SAVE TODAY NOTES
+  // -------------------------
+  const saveNotes = async (meetingId) => {
+  const notes = notesInput[meetingId];
 
-  const getActions = (notes) => {
-    if (!notes) return [];
+  console.log("Saving:", meetingId, notes); // 👈 ADD THIS
 
-    return notes
-      .split(".")
-      .map((x) => x.trim())
-      .filter(
-        (x) =>
-          x.toLowerCase().includes("need") ||
-          x.toLowerCase().includes("send") ||
-          x.toLowerCase().includes("share") ||
-          x.toLowerCase().includes("complete") ||
-          x.toLowerCase().includes("follow")
-      );
-  };
+  await fetch(
+    `http://127.0.0.1:8000/meeting-log/${meetingId}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ notes }),
+    }
+  );
+
+  loadMeetings();
+};
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow p-5">
+
+      {/* CREATE MEETING */}
+      <div className="bg-white p-5 rounded-xl shadow">
         <h2 className="text-xl font-semibold mb-4">
-          Schedule Meeting
+          Create Meeting
         </h2>
 
         <div className="grid md:grid-cols-2 gap-4">
+
           <input
             className="border p-2 rounded"
             placeholder="Meeting Title"
@@ -108,6 +116,7 @@ export default function MeetingsPage() {
               setForm({ ...form, agenda: e.target.value })
             }
           />
+
         </div>
 
         <button
@@ -118,78 +127,101 @@ export default function MeetingsPage() {
         </button>
       </div>
 
-      <div className="space-y-5">
-        {meetings.map((meeting) => {
-          const actions = getActions(meeting.notes);
+      {/* MEETINGS LIST */}
+      <div className="space-y-6">
 
-          return (
-            <div
-              key={meeting.id}
-              className="bg-white rounded-xl shadow p-5 space-y-4"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    {meeting.title}
-                  </h3>
+        {meetings.map((meeting) => (
 
-                  <p className="text-gray-500">
-                    {meeting.time} | Owner: {meeting.owner}
-                  </p>
+          <div
+            key={meeting.id}
+            className="bg-white p-5 rounded-xl shadow space-y-4"
+          >
 
-                  <p className="mt-2 text-sm">
-                    Agenda: {meeting.agenda}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">
-                    Score
-                  </p>
-                  <p className="text-xl font-bold text-green-600">
-                    {meeting.score}%
-                  </p>
-                </div>
-              </div>
+            {/* HEADER */}
+            <div className="flex justify-between">
 
               <div>
-                <h4 className="font-medium mb-2">
-                  MOM Notes
-                </h4>
+                <h3 className="text-lg font-semibold">
+                  {meeting.title}
+                </h3>
 
-                <textarea
-                  rows="4"
-                  className="w-full border rounded p-3"
-                  placeholder="Enter meeting notes..."
-                  value={meeting.notes}
-                  onChange={(e) =>
-                    updateNotes(
-                      meeting.id,
-                      e.target.value
-                    )
-                  }
-                />
+                <p className="text-gray-500 text-sm">
+                  {meeting.time} | {meeting.owner}
+                </p>
+
+                <p className="mt-2 text-sm">
+                  Agenda: {meeting.agenda}
+                </p>
               </div>
 
-              <div>
-                <h4 className="font-medium mb-2">
-                  Action Items
-                </h4>
-
-                <ul className="list-disc pl-5 space-y-1">
-                  {actions.length === 0 ? (
-                    <li>No actions detected</li>
-                  ) : (
-                    actions.map((item, i) => (
-                      <li key={i}>{item}</li>
-                    ))
-                  )}
-                </ul>
-              </div>
             </div>
-          );
-        })}
+
+            {/* ADD TODAY NOTES */}
+            <div>
+              <h4 className="font-medium mb-2">
+                Add Today Notes
+              </h4>
+
+              <textarea
+                className="w-full border p-3 rounded"
+                rows="3"
+                placeholder="Enter today's MOM..."
+                value={notesInput[meeting.id] || ""}
+                onChange={(e) =>
+                  setNotesInput({
+                    ...notesInput,
+                    [meeting.id]: e.target.value,
+                  })
+                }
+              />
+
+              <button
+                onClick={() => saveNotes(meeting.id)}
+                className="mt-2 bg-green-600 text-white px-4 py-1 rounded"
+              >
+                Save Notes
+              </button>
+            </div>
+
+            {/* HISTORY */}
+            <div>
+              <h4 className="font-medium mb-2">
+                Daily History
+              </h4>
+
+              {meeting.logs && meeting.logs.length === 0 && (
+                <p className="text-gray-500 text-sm">
+                  No updates yet
+                </p>
+              )}
+
+              {meeting.logs &&
+                meeting.logs
+                  .slice()
+                  .reverse()
+                  .map((log) => (
+                    <div
+                      key={log.id}
+                      className="border rounded p-3 mb-2"
+                    >
+                      <p className="text-xs text-gray-500">
+                        {log.date}
+                      </p>
+
+                      <p className="mt-1">
+                        {log.notes}
+                      </p>
+                    </div>
+                  ))}
+
+            </div>
+
+          </div>
+
+        ))}
+
       </div>
+
     </div>
   );
 }

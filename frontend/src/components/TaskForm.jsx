@@ -28,18 +28,23 @@ export default function TaskForm({ addTask }) {
       <h2 className="text-xl font-semibold">Add New Task</h2>
 
       <input
-        className="w-full border p-2 rounded"
-        placeholder="Task Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
+  className="input"
+  placeholder="Task Title"
+  value={form.task_title}
+  onChange={(e) => setForm({...form, task_title: e.target.value})}
+/>
 
-      <input
-        className="w-full border p-2 rounded"
-        placeholder="Owner Name"
-        value={owner}
-        onChange={(e) => setOwner(e.target.value)}
-      />
+      <select
+  className="input"
+  value={form.assigned_to}
+  onChange={(e) => setForm({...form, assigned_to: e.target.value})}
+>
+  <option value="">Assign To</option>
+  <option>Rakshitha</option>
+  <option>Gokul</option>
+  <option>Javeri</option>
+  <option>Divya</option>
+</select>
 
       <select
         className="w-full border p-2 rounded"
@@ -51,9 +56,9 @@ export default function TaskForm({ addTask }) {
         <option>Low</option>
       </select>
 
-      <button className="bg-slate-900 text-white px-4 py-2 rounded">
-        Add Task
-      </button>
+      <button onClick={addTask} className="btn-primary mt-4">
+  Add Task
+</button>
     </form>
   );
 }

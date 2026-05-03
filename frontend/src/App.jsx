@@ -13,30 +13,34 @@ import PerformancePage from "./pages/PerformancePage";
 import DocumentPage from "./pages/DocumentPage";
 import FollowUpPage from "./pages/FollowUpPage";
 import CapacityPage from "./pages/CapacityPage";
+import Insights from "./pages/Insights";
 
 
 
 export default function App() {
   return (
-    <div className="flex">
-      <Sidebar />
+    <div className="cloud-bg min-h-screen p-6">
+      <div className="flex">
+        <Sidebar />
 
-      <div className="flex-1 min-h-screen bg-slate-100">
-        <Header />
+        <div className="flex-1 min-h-screen bg-slate-100">
+          <Header />
 
-        <div className="p-6">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/scheduler" element={<SchedulerPage />} />
-            <Route path="/meetings" element={<MeetingsPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/performance" element={<PerformancePage />} />
-            <Route path="/docs-ai" element={<DocumentPage />} />
-            <Route path="/follow-up" element={<FollowUpPage />} />
-            <Route path="/capacity" element={<CapacityPage />} />
-            <Route path="/notifications" element={<NotificationsPage />}/>
-          </Routes>
+          <div className="p-6">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/scheduler" element={<SchedulerPage />} />
+              <Route path="/meetings" element={<MeetingsPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/performance" element={<PerformancePage />} />
+              <Route path="/docs-ai" element={<DocumentPage />} />
+              <Route path="/follow-up" element={<FollowUpPage />} />
+              <Route path="/capacity" element={<CapacityPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/insights" element={<Insights />} />
+            </Routes>
+          </div>
         </div>
       </div>
     </div>
