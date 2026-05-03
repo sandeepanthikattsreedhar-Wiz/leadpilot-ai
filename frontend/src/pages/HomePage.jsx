@@ -1,131 +1,243 @@
-export default function HomePage() {
-  const priorities = [
-    "Follow up with Rahul on UAT fix",
-    "Review client escalation from Alpha ERP",
-    "Approve Meena resource request",
-    "Prepare 3 PM steering meeting notes",
+import { useEffect, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid
+} from "recharts";
+
+export default function Dashboard() {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    loadDashboard();
+
+    const timer = setInterval(loadDashboard, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const loadDashboard = async () => {
+    try {
+      const res = await fetch(
+        "http://127.0.0.1:8000/dashboard-full"
+      );
+
+      const json = await res.json();
+      setData(json);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  if (!data || !data.stats) {
+    return (
+      <div className="p-8 text-xl font-semibold">
+        Loading Dashboard...
+      </div>
+    );
+  }
+
+  const chartData = [
+    {
+      name: "Completed",
+      value: data.stats.completed
+    },
+    {
+      name: "Pending",
+      value: data.stats.pending
+    },
+    {
+      name: "Progress",
+      value: data.stats.inprogress
+    }
   ];
 
-  const meetings = [
-    { time: "10:00 AM", title: "Internal Standup" },
-    { time: "1:00 PM", title: "Client Progress Review" },
-    { time: "3:00 PM", title: "Management Steering Call" },
-  ];
-
-  const team = [
-    { name: "Rahul", status: "Busy" },
-    { name: "Meena", status: "Available" },
-    { name: "Arjun", status: "Busy" },
-    { name: "Divya", status: "Overloaded" },
+  const pieData = [
+    {
+      name: "High",
+      value: data.priority.high
+    },
+    {
+      name: "Medium",
+      value: data.priority.medium
+    },
+    {
+      name: "Low",
+      value: data.priority.low
+    }
   ];
 
   return (
     <div className="space-y-6">
+
+      {/* Heading */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">
+          Executive Dashboard
+        </h1>
+
+        <span className="text-sm text-gray-500">
+          Auto Refresh: 5 sec
+        </span>
+      </div>
+
+      {/* KPI Cards */}
       <div className="grid md:grid-cols-4 gap-5">
-        <div className="bg-white p-5 rounded-xl shadow">
-          <p className="text-gray-500">Pending Tasks</p>
-          <h2 className="text-3xl font-bold">14</h2>
-        </div>
 
-        <div className="bg-white p-5 rounded-xl shadow">
-          <p className="text-gray-500">Meetings Today</p>
-          <h2 className="text-3xl font-bold">3</h2>
-        </div>
+        <Card
+          title="Total Tasks"
+          value={data.stats.total}
+        />
 
-        <div className="bg-white p-5 rounded-xl shadow">
-          <p className="text-gray-500">Critical Alerts</p>
-          <h2 className="text-3xl font-bold text-red-600">2</h2>
-        </div>
+        <Card
+          title="Completed"
+          value={data.stats.completed}
+        />
 
-        <div className="bg-white p-5 rounded-xl shadow">
-          <p className="text-gray-500">Lead Score</p>
-          <h2 className="text-3xl font-bold text-green-600">92%</h2>
-        </div>
+        <Card
+          title="Pending"
+          value={data.stats.pending}
+        />
+
+        <Card
+          title="In Progress"
+          value={data.stats.inprogress}
+        />
+
       </div>
 
-      <div className="grid xl:grid-cols-2 gap-6">
-        <div className="bg-white p-5 rounded-xl shadow">
+      {/* Charts */}
+      <div className="grid md:grid-cols-2 gap-5">
+
+        {/* Status Chart */}
+        <div className="bg-white p-5 rounded-2xl shadow">
           <h3 className="font-semibold mb-4">
-            AI Priorities Today
+            Task Status
           </h3>
 
-          <div className="space-y-3">
-            {priorities.map((item, i) => (
-              <div
-                key={i}
-                className="border-l-4 border-blue-500 pl-3 py-2"
-              >
-                {item}
-              </div>
-            ))}
+          <div className="h-72">
+            <ResponsiveContainer>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar
+                  dataKey="value"
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl shadow">
+        {/* Priority Chart */}
+        <div className="bg-white p-5 rounded-2xl shadow">
           <h3 className="font-semibold mb-4">
-            Upcoming Meetings
+            Priority Mix
           </h3>
 
-          <div className="space-y-3">
-            {meetings.map((m, i) => (
-              <div
-                key={i}
-                className="flex justify-between border-b pb-2"
-              >
-                <span>{m.title}</span>
-                <span className="text-gray-500">
-                  {m.time}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid xl:grid-cols-2 gap-6">
-        <div className="bg-white p-5 rounded-xl shadow">
-          <h3 className="font-semibold mb-4">
-            Team Availability
-          </h3>
-
-          <div className="space-y-3">
-            {team.map((member, i) => (
-              <div
-                key={i}
-                className="flex justify-between border-b pb-2"
-              >
-                <span>{member.name}</span>
-
-                <span
-                  className={
-                    member.status === "Available"
-                      ? "text-green-600"
-                      : member.status === "Overloaded"
-                      ? "text-red-600"
-                      : "text-orange-600"
-                  }
+          <div className="h-72">
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  outerRadius={100}
+                  label
                 >
-                  {member.status}
-                </span>
-              </div>
-            ))}
+                  <Cell />
+                  <Cell />
+                  <Cell />
+                </Pie>
+
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl shadow">
-          <h3 className="font-semibold mb-4">
-            AI Executive Summary
-          </h3>
+      </div>
 
-          <p className="text-gray-700 leading-7">
-            Team is operating at good capacity.
-            Two delayed items need follow-up.
-            One engineer is overloaded.
-            Today focus should be client review
-            and risk closures.
-          </p>
+      {/* Productivity */}
+      <div className="bg-white p-6 rounded-2xl shadow">
+
+        <h3 className="text-xl font-semibold">
+          Team Productivity Score
+        </h3>
+
+        <div className="mt-4 text-5xl font-bold">
+          {data.productivity}%
+        </div>
+
+        <div className="mt-4 bg-slate-200 h-4 rounded-full">
+          <div
+            className="bg-green-500 h-4 rounded-full"
+            style={{
+              width: `${data.productivity}%`
+            }}
+          ></div>
+        </div>
+
+      </div>
+
+      {/* Recent Tasks */}
+      <div className="bg-white p-6 rounded-2xl shadow">
+
+        <h3 className="text-xl font-semibold mb-4">
+          Recent Tasks
+        </h3>
+
+        <div className="space-y-3">
+
+          {data?.recent?.length === 0 && (
+            <p>No tasks found.</p>
+          )}
+
+          {data?.recent?.map((task) => (
+            <div
+              key={task.id}
+              className="border rounded-xl p-4 flex justify-between items-center"
+            >
+              <div>
+                <p className="font-semibold">
+                  {task.task_title}
+                </p>
+
+                <p className="text-sm text-gray-500">
+                  {task.assigned_to}
+                </p>
+              </div>
+
+              <span className="text-sm px-3 py-1 rounded-full bg-slate-100">
+                {task.status}
+              </span>
+            </div>
+          ))}
+
         </div>
       </div>
+
+    </div>
+  );
+}
+
+function Card({ title, value }) {
+  return (
+    <div className="bg-white p-5 rounded-2xl shadow">
+      <p className="text-slate-500">
+        {title}
+      </p>
+
+      <h2 className="text-3xl font-bold mt-2">
+        {value}
+      </h2>
     </div>
   );
 }
