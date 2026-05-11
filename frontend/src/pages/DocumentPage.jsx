@@ -8,7 +8,7 @@ export default function DocsPage() {
   const [currentStep, setCurrentStep] = useState("");
   const [doneSteps, setDoneSteps] = useState([]);
   const [data, setData] = useState(null);
-
+  const clean = (text) => text?.replace(/[^\x00-\x7F]/g, "");
   const steps = [
     "Uploading document",
     "Extracting content",
@@ -51,14 +51,17 @@ export default function DocsPage() {
 
     const ui = runExperience();
 
-    const api = fetch("http://127.0.0.1:8000/analyze-doc", {
+    const api = fetch(`${import.meta.env.VITE_API_URL}/analyze-doc`, {
       method: "POST",
       body: form,
     }).then((r) => r.json());
 
     const [, result] = await Promise.all([ui, api]);
 
-    setData(result);
+    setData({
+      ...result,
+      summary: clean(result.summary)
+    });
     setLoading(false);
   };
 
@@ -131,7 +134,7 @@ export default function DocsPage() {
                   >
                     <div className="w-6">
                       {doneSteps.includes(step) ? "✅" :
-                       currentStep === step ? "🔄" : "⭕"}
+                        currentStep === step ? "🔄" : "⭕"}
                     </div>
 
                     <div
@@ -139,8 +142,8 @@ export default function DocsPage() {
                         currentStep === step
                           ? "text-blue-300"
                           : doneSteps.includes(step)
-                          ? "text-green-300"
-                          : "text-slate-400"
+                            ? "text-green-300"
+                            : "text-slate-400"
                       }
                     >
                       {step}
@@ -158,14 +161,43 @@ export default function DocsPage() {
       )}
 
       {data && (
-        <div className="bg-white rounded-2xl p-6 shadow">
-          <h3 className="text-xl font-bold mb-3">
-            Executive Summary
-          </h3>
+        <div className="space-y-6">
 
-          <p>{data.summary}</p>
+          {/* SUMMARY */}
+          <div className="bg-white rounded-2xl p-6 shadow">
+            <h3 className="text-xl font-bold mb-3">
+              Executive Summary
+            </h3>
+
+            <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>
+              {data.summary}
+            </p>
+          </div>
+
+          {/* SIMILAR DOCS */}
+          <div className="bg-white rounded-2xl p-6 shadow">
+            <h3 className="text-xl font-bold mb-3">
+              Similar Past Documents
+            </h3>
+
+            {data.similar?.length === 0 && (
+              <p>No similar documents found</p>
+            )}
+
+            {data.similar?.map((group, i) => (
+              <div key={i} className="mb-4">
+                {group.map((doc, j) => (
+                  <p key={j} className="text-sm text-gray-700 mb-2">
+                    {doc}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
+
         </div>
       )}
     </div>
   );
 }
+  
