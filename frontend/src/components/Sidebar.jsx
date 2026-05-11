@@ -7,7 +7,7 @@ const menu = [
   { name: "Meetings", path: "/meetings" },
   { name: "Performance", path: "/performance" },
   { name: "Docs AI", path: "/docs-ai" },
-  { name: "Follow Up", path: "/follow-up" },
+  { name: "Follow Up", path: "/followup-data" },
   { name: "Capacity", path: "/capacity" },
   { name: "Reports", path: "/reports" },
   { name: "Insights", path: "/insights" },

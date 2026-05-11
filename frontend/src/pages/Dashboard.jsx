@@ -17,7 +17,7 @@ export default function Dashboard() {
 }, []);
 
   const loadDashboard = async () => {
-    const res = await fetch("http://127.0.0.1:8000/dashboard-full");
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/dashboard-full`);
     const json = await res.json();
     setData(json);
   };

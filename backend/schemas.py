@@ -7,7 +7,8 @@ class TaskCreate(BaseModel):
     start_date: str
     end_date: str
     remarks: str
-    status: str = "Pending"
+    status: str = "Yet to Start"
+    priority: str = "Medium"
 
 class MeetingCreate(BaseModel):
     title: str

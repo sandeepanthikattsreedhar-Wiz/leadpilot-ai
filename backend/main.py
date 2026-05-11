@@ -1,14 +1,30 @@
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-
+from fastapi import UploadFile, File
+from ai_memory import store_document, search_similar
+from ai_engine import generate_summary
+from pypdf import PdfReader
 from database import SessionLocal, engine, Base
-from models import Task
+from migrate_dates import parse_date
+from models import FollowUp, Task
 from schemas import TaskCreate
 from models import Task, Meeting, MeetingLog
 from schemas import TaskCreate, MeetingCreate, NotesUpdate
-from datetime import datetime
+from datetime import datetime, timezone
+from fastapi import UploadFile, File
+from openai import OpenAI
+from vector_store import collection
+import uuid
+from pypdf import PdfReader
+from ai_memory import store_document, search_similar
 
+client = OpenAI(api_key=os.getenv("GROQ_API_KEY"),base_url="https://api.groq.com/openai/v1")
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -24,6 +40,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def extract_pdf(file):
+    reader = PdfReader(file)
+    text = ""
+
+    for page in reader.pages:
+        try:
+            text += page.extract_text() or ""
+        except:
+            pass
+
+    return text
+
+def clean_text(text):
+    return text.encode("utf-8", "ignore").decode("utf-8")
+
+def safe_parse(date_str):
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d")
+    except:
+        return None
+    
 def get_db():
     db = SessionLocal()
     try:
@@ -42,6 +79,7 @@ def home():
 def get_tasks(
     search: str = Query(default=""),
     status: str = Query(default=""),
+    assigned_to: str = Query(default=""),
     db: Session = Depends(get_db)
 ):
     query = db.query(Task)
@@ -52,14 +90,18 @@ def get_tasks(
     if status:
         query = query.filter(Task.status == status)
 
-    return query.order_by(Task.id.desc()).all()
+    if assigned_to:
+        query = query.filter(Task.assigned_to == assigned_to)
 
+    return query.order_by(Task.id.desc()).all()
 # ----------------------------
 # ADD TASK
 # ----------------------------
 @app.post("/tasks")
 def add_task(task: TaskCreate, db: Session = Depends(get_db)):
     item = Task(**task.dict())
+    item.last_updated = datetime.utcnow()
+
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -69,20 +111,29 @@ def add_task(task: TaskCreate, db: Session = Depends(get_db)):
 # UPDATE TASK
 # ----------------------------
 @app.put("/tasks/{task_id}")
-def update_task(task_id: int, data: TaskCreate, db: Session = Depends(get_db)):
+def update_task(task_id: int, payload: TaskCreate, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
 
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        return {"error": "Task not found"}
 
-    for key, value in data.dict().items():
-        setattr(task, key, value)
+    task.task_title = payload.task_title
+    task.task_name = payload.task_name
+    task.assigned_to = payload.assigned_to
+    task.start_date = payload.start_date
+    task.end_date = payload.end_date
+    task.remarks = payload.remarks
+    task.status = payload.status
+    task.priority = payload.priority
+
+
+    # ✅ THIS IS THE FIX
+    task.last_updated = datetime.utcnow()
 
     db.commit()
     db.refresh(task)
 
     return task
-
 # ----------------------------
 # DELETE TASK
 # ----------------------------
@@ -103,7 +154,7 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
 def dashboard_full(db: Session = Depends(get_db)):
     total = db.query(Task).count()
     completed = db.query(Task).filter(Task.status == "Completed").count()
-    pending = db.query(Task).filter(Task.status == "Pending").count()
+    yet_to_start  = db.query(Task).filter(Task.status == "Yet to Start").count()
     progress = db.query(Task).filter(Task.status == "In Progress").count()
 
     recent = db.query(Task).order_by(Task.id.desc()).limit(5).all()
@@ -112,7 +163,7 @@ def dashboard_full(db: Session = Depends(get_db)):
         "stats": {
             "total": total,
             "completed": completed,
-            "pending": pending,
+            "yet_to_start": yet_to_start,
             "inprogress": progress
         },
         "priority": {
@@ -144,7 +195,7 @@ def scheduler_data(db: Session = Depends(get_db)):
 
         pending = len([
             t for t in user_tasks
-            if t.status == "Pending"
+            if t.status == "Yet to Start"
         ])
 
         progress = len([
@@ -283,7 +334,7 @@ def performance_data(db: Session = Depends(get_db)):
         pending = len([
             t for t in tasks
             if t.status in [
-                "Pending",
+                "Yet to Start",
                 "In Progress"
             ]
         ])
@@ -296,32 +347,74 @@ def performance_data(db: Session = Depends(get_db)):
 
     return result
 
+from datetime import datetime, timedelta
+
 @app.get("/followup-data")
 def followup_data(db: Session = Depends(get_db)):
-    tasks = db.query(Task).all()
+
+    tasks = db.query(Task).filter(
+        Task.status != "Completed"
+    ).all()
 
     result = []
 
-    for t in tasks:
-        # Calculate days since end_date (simple logic)
-        days = 0
-        if t.end_date:
-            try:
-                from datetime import datetime
-                end = datetime.strptime(t.end_date, "%Y-%m-%d")
-                days = (datetime.now() - end).days
-            except:
-                days = 0
+    today = datetime.utcnow()
 
-        priority = "High" if days >= 3 else "Medium" if days >= 1 else "Low"
+    for t in tasks:
+
+        end = parse_date(t.end_date)
+
+        if not end:
+            continue
+
+        days_left = (end - today).days
+
+        priority = getattr(t, "priority", "Medium")
+
+        priority_weight = {
+            "High": 15,
+            "Medium": 8,
+            "Low": 3
+        }.get(priority, 5)
+
+        urgency_weight = max(0, 10 - days_left)
+
+        score = priority_weight + urgency_weight
+
+        # CRITICALITY
+        if days_left <= 1:
+            criticality = "High"
+        elif days_left <= 4:
+            criticality = "Medium"
+        else:
+            criticality = "Low"
+
+        # AI ACTION
+        if days_left < 0:
+            action = "Escalate immediately"
+        elif days_left == 0:
+            action = "Close task today"
+        elif days_left <= 2:
+            action = "Follow up with owner"
+        elif t.status == "Blocked":
+            action = "Resolve blockers"
+        elif t.status == "In QA":
+            action = "Push QA completion"
+        elif t.status == "In UAT":
+            action = "Coordinate with client"
+        else:
+            action = "Monitor progress"
 
         result.append({
             "id": t.id,
-            "owner": t.assigned_to,
             "task": t.task_title,
-            "days": max(days, 0),
+            "owner": t.assigned_to,
             "priority": priority,
-            "status": t.status
+            "status": t.status,
+            "days": days_left,
+            "score": score,
+            "criticality": criticality,
+            "action": action,
         })
 
     return result
@@ -370,7 +463,7 @@ def reports_data(db: Session = Depends(get_db)):
 
     pending = len([
         t for t in tasks
-        if t.status == "Pending"
+        if t.status == "Yet to Start"
     ])
 
     progress = len([
@@ -405,7 +498,7 @@ Productivity improved to {productivity}%.
     client_body = f"""
 Project execution is active.
 Completed items: {completed}
-Pending items: {pending}
+Yet to Start items: {pending}
 In progress items: {progress}
 Expected milestone closures continue as planned.
 """
@@ -419,7 +512,7 @@ Expected milestone closures continue as planned.
     productivity_body = f"""
 Top contributor: {top_owner}
 Average closure rate: {productivity}%
-Pending tasks count: {pending}
+Yet to Start tasks count: {pending}
 Lead efficiency score: {min(productivity + 5, 100)}%
 """
 
@@ -448,7 +541,7 @@ def smart_insights(db: Session = Depends(get_db)):
 
     total = len(tasks)
 
-    pending = [t for t in tasks if t.status == "Pending"]
+    pending = [t for t in tasks if t.status == "Yet to Start"]
     progress = [t for t in tasks if t.status == "In Progress"]
 
     owners = {}
@@ -502,3 +595,63 @@ def save_log(meeting_id: int, data: dict, db: Session = Depends(get_db)):
     db.refresh(log)   # ✅ IMPORTANT
 
     return log        # ✅ return saved object
+@app.put("/followup-update/{id}")
+def update_followup(id: int, db: Session = Depends(get_db)):
+    item = db.query(FollowUp).filter(FollowUp.id == id).first()
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Follow-up not found")
+
+    # ✅ Update status
+    item.status = "Updated"
+
+    # ✅ SET CURRENT TIMESTAMP (ISO format)
+    item.last_updated = datetime.utcnow()
+    # OPTIONAL: reset days since it's updated
+    item.days = 0
+
+    db.commit()
+    db.refresh(item)
+
+    return {"message": "Follow-up updated successfully"}
+
+from fastapi import UploadFile, File
+import uuid
+
+@app.post("/analyze-doc")
+async def analyze_doc(
+    file: UploadFile = File(None),
+    text: str = ""
+):
+    try:
+        # -------- Extract --------
+        if file:
+            if file.filename.endswith(".pdf"):
+                content = extract_pdf(file.file)
+            else:
+                content = (await file.read()).decode("utf-8", errors="ignore")
+        else:
+            content = text
+
+        content = clean_text(content)
+
+        if not content.strip():
+            return {"summary": "No readable content found", "similar": []}
+
+        # -------- AI SUMMARY --------
+        summary = generate_summary(content)
+
+        # -------- STORE --------
+        doc_id = str(abs(hash(content)))
+        store_document(doc_id, content)
+
+        # -------- SIMILAR --------
+        similar = search_similar(summary)
+
+        return {
+            "summary": summary,
+            "similar": similar
+        }
+
+    except Exception as e:
+        return {"summary": f"Error: {str(e)}", "similar": []}

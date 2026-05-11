@@ -1,15 +1,37 @@
 import { useEffect, useState } from "react";
 
+function getTimeAgo(dateString) {
+  if (!dateString) return "Not updated";
+
+  const now = new Date();
+  const past = new Date(dateString);
+  const diffMs = now - past;
+
+  const seconds = Math.floor(diffMs / 1000);
+  const minutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (seconds < 10) return "Just now";
+  if (seconds < 60) return `${seconds}s ago`;
+  if (minutes < 60) return `${minutes} min${minutes > 1 ? "s" : ""} ago`;
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+
+  return past.toLocaleDateString();
+}
 export default function Tasks() {
   const emptyForm = {
-    task_title: "",
-    task_name: "",
-    assigned_to: "Rakshitha",
-    start_date: "",
-    end_date: "",
-    remarks: "",
-    status: "Pending",
-  };
+  task_title: "",
+  task_name: "",
+  assigned_to: "Rakshitha",
+  start_date: "",
+  end_date: "",
+  remarks: "",
+  status: "Yet to Start",
+  priority: "Medium",
+};
 
   const [form, setForm] = useState(emptyForm);
   const [tasks, setTasks] = useState([]);
@@ -17,20 +39,30 @@ export default function Tasks() {
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterOwner, setFilterOwner] = useState("");
 
   useEffect(() => {
     loadTasks();
-  }, [search, filterStatus]);
+  }, [search, filterStatus, filterOwner]);
+
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setTasks(prev => [...prev]);
+  }, 60000);
+
+  return () => clearInterval(interval);
+}, []);
 
   const loadTasks = async () => {
     const res = await fetch(
-      `http://127.0.0.1:8000/tasks?search=${search}&status=${filterStatus}`
+      `http://127.0.0.1:8000/tasks?search=${search}&status=${filterStatus}&assigned_to=${filterOwner}`
     );
 
     const data = await res.json();
     setTasks(data);
   };
 
+  // ---------------- SAVE ----------------
   const saveTask = async () => {
     if (!form.task_title.trim()) {
       alert("Task Title is required");
@@ -56,20 +88,23 @@ export default function Tasks() {
     loadTasks();
   };
 
+  // ---------------- EDIT ----------------
   const editTask = (task) => {
-    setForm({
-      task_title: task.task_title || "",
-      task_name: task.task_name || "",
-      assigned_to: task.assigned_to || "Rakshitha",
-      start_date: task.start_date || "",
-      end_date: task.end_date || "",
-      remarks: task.remarks || "",
-      status: task.status || "Pending",
-    });
+   setForm({
+  task_title: task.task_title || "",
+  task_name: task.task_name || "",
+  assigned_to: task.assigned_to || "Rakshitha",
+  start_date: task.start_date || "",
+  end_date: task.end_date || "",
+  remarks: task.remarks || "",
+  status: task.status || "Yet to Start",
+  priority: task.priority || "Medium",
+});
 
     setEditingId(task.id);
   };
 
+  // ---------------- DELETE ----------------
   const deleteTask = async (id) => {
     if (!window.confirm("Delete this task?")) return;
 
@@ -179,29 +214,37 @@ export default function Tasks() {
 
       </div>
 
-      {/* SEARCH */}
+      {/* FILTERS */}
       <div className="bg-white p-4 rounded-2xl shadow flex gap-4 flex-wrap">
 
         <input
           className="border p-3 rounded-xl"
           placeholder="Search Task Title"
           value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
+          onChange={(e) => setSearch(e.target.value)}
         />
 
         <select
           className="border p-3 rounded-xl"
           value={filterStatus}
-          onChange={(e) =>
-            setFilterStatus(e.target.value)
-          }
+          onChange={(e) => setFilterStatus(e.target.value)}
         >
           <option value="">All Status</option>
           <option>Pending</option>
           <option>In Progress</option>
           <option>Completed</option>
+        </select>
+
+        <select
+          className="border p-3 rounded-xl"
+          value={filterOwner}
+          onChange={(e) => setFilterOwner(e.target.value)}
+        >
+          <option value="">All Engineers</option>
+          <option>Rakshitha</option>
+          <option>Gokul</option>
+          <option>Javeri</option>
+          <option>Divya</option>
         </select>
 
       </div>
@@ -218,6 +261,7 @@ export default function Tasks() {
               <th className="p-3 text-left">Start</th>
               <th className="p-3 text-left">End</th>
               <th className="p-3 text-left">Status</th>
+              <th className="p-3 text-left">Last Updated</th>
               <th className="p-3 text-left">Actions</th>
             </tr>
           </thead>
@@ -240,7 +284,9 @@ export default function Tasks() {
                 <td className="p-3">{task.start_date}</td>
                 <td className="p-3">{task.end_date}</td>
                 <td className="p-3">{task.status}</td>
-
+                <td className="p-3 text-sm text-gray-500">
+                  {getTimeAgo(task.last_updated)}
+                </td>
                 <td className="p-3 space-x-2">
 
                   <button

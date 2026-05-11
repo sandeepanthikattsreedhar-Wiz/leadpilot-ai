@@ -1,5 +1,8 @@
-from sqlalchemy import Column, Integer, String
+import datetime
+
+from sqlalchemy import Column, Integer, String,DateTime
 from database import Base
+from datetime import datetime, timezone
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -8,7 +11,12 @@ class Task(Base):
 
     task_title = Column(String)
     task_name = Column(String)
+    last_updated = Column(
+    DateTime,
+    default=datetime.utcnow,
+    onupdate=datetime.utcnow
 
+)
     assigned_to = Column(String)
 
     start_date = Column(String)
@@ -16,7 +24,10 @@ class Task(Base):
 
     remarks = Column(String)
 
-    status = Column(String, default="Pending")
+    status = Column(String, default="Yet to Start")
+    priority = Column(String, default="Medium")
+    start_date_dt = Column(DateTime)
+    end_date_dt = Column(DateTime)
 
 
 class Meeting(Base):
@@ -37,3 +48,19 @@ class MeetingLog(Base):
     meeting_id = Column(Integer)
     date = Column(String)   # "2026-04-30"
     notes = Column(String)
+
+class FollowUp(Base):
+    __tablename__ = "followups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(Integer)
+    owner = Column(String)
+    task = Column(String)
+    days = Column(Integer)
+    priority = Column(String)
+    status = Column(String, default="Pending")
+    last_updated = Column(
+    DateTime,
+    default=datetime.utcnow,
+    onupdate=datetime.utcnow
+)

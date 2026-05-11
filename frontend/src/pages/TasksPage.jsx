@@ -1,5 +1,26 @@
 import { useEffect, useState } from "react";
 
+function getTimeAgo(dateString) {
+  if (!dateString) return "Not updated";
+
+  const now = new Date();
+  const past = new Date(dateString);
+  const diffMs = now - past;
+
+  const seconds = Math.floor(diffMs / 1000);
+  const minutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (seconds < 10) return "Just now";
+  if (seconds < 60) return `${seconds}s ago`;
+  if (minutes < 60) return `${minutes} min ago`;
+  if (hours < 24) return `${hours} hour ago`;
+  if (days === 1) return "Yesterday";
+
+  return `${days} days ago`;
+}
+
 export default function Tasks() {
   const emptyForm = {
     task_title: "",
@@ -8,7 +29,8 @@ export default function Tasks() {
     start_date: "",
     end_date: "",
     remarks: "",
-    status: "Pending",
+    status: "Yet to Start",
+    priority: "Medium",
   };
 
   const [form, setForm] = useState(emptyForm);
@@ -17,29 +39,37 @@ export default function Tasks() {
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterOwner, setFilterOwner] = useState("");
 
   useEffect(() => {
     loadTasks();
-  }, [search, filterStatus]);
+
+    const timer = setInterval(() => {
+      loadTasks();
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, [search, filterStatus, filterOwner]);
 
   const loadTasks = async () => {
     const res = await fetch(
-      `http://127.0.0.1:8000/tasks?search=${search}&status=${filterStatus}`
+      `${import.meta.env.VITE_API_URL}/tasks?search=${search}&status=${filterStatus}&assigned_to=${filterOwner}`
     );
 
     const data = await res.json();
     setTasks(data);
   };
 
+  // SAVE
   const saveTask = async () => {
     if (!form.task_title.trim()) {
-      alert("Task Title is required");
+      alert("Task title required");
       return;
     }
 
     const url = editingId
-      ? `http://127.0.0.1:8000/tasks/${editingId}`
-      : `http://127.0.0.1:8000/tasks`;
+      ? `${import.meta.env.VITE_API_URL}/tasks/${editingId}`
+      : `${import.meta.env.VITE_API_URL}/tasks`;
 
     const method = editingId ? "PUT" : "POST";
 
@@ -53,9 +83,11 @@ export default function Tasks() {
 
     setForm(emptyForm);
     setEditingId(null);
+
     loadTasks();
   };
 
+  // EDIT
   const editTask = (task) => {
     setForm({
       task_title: task.task_title || "",
@@ -64,16 +96,18 @@ export default function Tasks() {
       start_date: task.start_date || "",
       end_date: task.end_date || "",
       remarks: task.remarks || "",
-      status: task.status || "Pending",
+      status: task.status || "Yet to Start",
+      priority: task.priority || "Medium",
     });
 
     setEditingId(task.id);
   };
 
+  // DELETE
   const deleteTask = async (id) => {
-    if (!window.confirm("Delete this task?")) return;
+    if (!window.confirm("Delete task?")) return;
 
-    await fetch(`http://127.0.0.1:8000/tasks/${id}`, {
+    await fetch(`${import.meta.env.VITE_API_URL}/tasks/${id}`, {
       method: "DELETE",
     });
 
@@ -82,10 +116,13 @@ export default function Tasks() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Task Management</h1>
+
+      <h1 className="text-3xl font-bold">
+        Task Management
+      </h1>
 
       {/* FORM */}
-      <div className="bg-white p-6 rounded-2xl shadow grid md:grid-cols-2 gap-4">
+      <div className="bg-white/90 backdrop-blur p-6 rounded-2xl shadow grid md:grid-cols-2 gap-4">
 
         <input
           className="border p-3 rounded-xl"
@@ -120,45 +157,49 @@ export default function Tasks() {
 
         <select
           className="border p-3 rounded-xl"
+          value={form.priority}
+          onChange={(e) =>
+            setForm({ ...form, priority: e.target.value })
+          }
+        >
+          <option>High</option>
+          <option>Medium</option>
+          <option>Low</option>
+        </select>
+
+        <select
+          className="border p-3 rounded-xl"
           value={form.status}
           onChange={(e) =>
             setForm({ ...form, status: e.target.value })
           }
         >
-          <option>Pending</option>
+          <option>Yet to Start</option>
           <option>In Progress</option>
+          <option>In QA</option>
+          <option>In UAT</option>
+          <option>In Production</option>
           <option>Completed</option>
+          <option>Blocked</option>
         </select>
 
-        <div>
-          <label className="text-sm text-slate-500">
-            Start Date
-          </label>
+        <input
+          type="date"
+          className="border p-3 rounded-xl"
+          value={form.start_date}
+          onChange={(e) =>
+            setForm({ ...form, start_date: e.target.value })
+          }
+        />
 
-          <input
-            type="date"
-            className="border p-3 rounded-xl w-full"
-            value={form.start_date}
-            onChange={(e) =>
-              setForm({ ...form, start_date: e.target.value })
-            }
-          />
-        </div>
-
-        <div>
-          <label className="text-sm text-slate-500">
-            End Date
-          </label>
-
-          <input
-            type="date"
-            className="border p-3 rounded-xl w-full"
-            value={form.end_date}
-            onChange={(e) =>
-              setForm({ ...form, end_date: e.target.value })
-            }
-          />
-        </div>
+        <input
+          type="date"
+          className="border p-3 rounded-xl"
+          value={form.end_date}
+          onChange={(e) =>
+            setForm({ ...form, end_date: e.target.value })
+          }
+        />
 
         <textarea
           rows="3"
@@ -172,77 +213,98 @@ export default function Tasks() {
 
         <button
           onClick={saveTask}
-          className="bg-blue-600 text-white py-3 rounded-xl md:col-span-2"
+          className="bg-purple-700 hover:bg-purple-800 text-white py-3 rounded-xl md:col-span-2"
         >
           {editingId ? "Update Task" : "Add Task"}
         </button>
 
       </div>
 
-      {/* SEARCH */}
-      <div className="bg-white p-4 rounded-2xl shadow flex gap-4 flex-wrap">
+      {/* FILTERS */}
+      <div className="bg-white/90 p-4 rounded-2xl shadow flex gap-4 flex-wrap">
 
         <input
           className="border p-3 rounded-xl"
-          placeholder="Search Task Title"
+          placeholder="Search Task"
           value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
+          onChange={(e) => setSearch(e.target.value)}
         />
 
         <select
           className="border p-3 rounded-xl"
           value={filterStatus}
-          onChange={(e) =>
-            setFilterStatus(e.target.value)
-          }
+          onChange={(e) => setFilterStatus(e.target.value)}
         >
           <option value="">All Status</option>
-          <option>Pending</option>
+          <option>Yet to Start</option>
           <option>In Progress</option>
+          <option>In QA</option>
+          <option>In UAT</option>
+          <option>In Production</option>
           <option>Completed</option>
+          <option>Blocked</option>
+        </select>
+
+        <select
+          className="border p-3 rounded-xl"
+          value={filterOwner}
+          onChange={(e) => setFilterOwner(e.target.value)}
+        >
+          <option value="">All Engineers</option>
+          <option>Rakshitha</option>
+          <option>Gokul</option>
+          <option>Javeri</option>
+          <option>Divya</option>
         </select>
 
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-2xl shadow overflow-auto">
+      <div className="bg-white/90 rounded-2xl shadow overflow-auto">
 
         <table className="w-full">
           <thead className="bg-slate-100">
             <tr>
-              <th className="p-3 text-left">Task Title</th>
-              <th className="p-3 text-left">Task Name</th>
-              <th className="p-3 text-left">Assigned To</th>
+              <th className="p-3 text-left">Title</th>
+              <th className="p-3 text-left">Assigned</th>
+              <th className="p-3 text-left">Priority</th>
               <th className="p-3 text-left">Start</th>
               <th className="p-3 text-left">End</th>
               <th className="p-3 text-left">Status</th>
+              <th className="p-3 text-left">Updated</th>
               <th className="p-3 text-left">Actions</th>
             </tr>
           </thead>
 
           <tbody>
-            {tasks.length === 0 && (
-              <tr>
-                <td colSpan="7" className="p-4 text-center">
-                  No tasks found
-                </td>
-              </tr>
-            )}
-
             {tasks.map((task) => (
               <tr key={task.id} className="border-t">
 
                 <td className="p-3">{task.task_title}</td>
-                <td className="p-3">{task.task_name}</td>
                 <td className="p-3">{task.assigned_to}</td>
+
+                <td className="p-3">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium
+                    ${
+                      task.priority === "High"
+                        ? "bg-red-100 text-red-600"
+                        : task.priority === "Medium"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-green-100 text-green-700"
+                    }`}>
+                    {task.priority}
+                  </span>
+                </td>
+
                 <td className="p-3">{task.start_date}</td>
                 <td className="p-3">{task.end_date}</td>
                 <td className="p-3">{task.status}</td>
 
-                <td className="p-3 space-x-2">
+                <td className="p-3 text-sm text-gray-500">
+                  {getTimeAgo(task.last_updated)}
+                </td>
 
+                <td className="p-3 space-x-2">
                   <button
                     onClick={() => editTask(task)}
                     className="bg-amber-500 text-white px-3 py-1 rounded-lg"
@@ -256,7 +318,6 @@ export default function Tasks() {
                   >
                     Delete
                   </button>
-
                 </td>
 
               </tr>
@@ -265,6 +326,7 @@ export default function Tasks() {
         </table>
 
       </div>
+
     </div>
   );
 }
