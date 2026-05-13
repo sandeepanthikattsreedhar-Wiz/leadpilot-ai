@@ -153,6 +153,7 @@ export default function Tasks() {
           <option>Gokul</option>
           <option>Javeri</option>
           <option>Divya</option>
+          <option>Sandeep</option>
         </select>
 
         <select
@@ -255,6 +256,7 @@ export default function Tasks() {
           <option>Gokul</option>
           <option>Javeri</option>
           <option>Divya</option>
+          <option>Sandeep</option>
         </select>
 
       </div>
@@ -285,10 +287,9 @@ export default function Tasks() {
 
                 <td className="p-3">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium
-                    ${
-                      task.priority === "High"
-                        ? "bg-red-100 text-red-600"
-                        : task.priority === "Medium"
+                    ${task.priority === "High"
+                      ? "bg-red-100 text-red-600"
+                      : task.priority === "Medium"
                         ? "bg-yellow-100 text-yellow-700"
                         : "bg-green-100 text-green-700"
                     }`}>
