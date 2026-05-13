@@ -178,11 +178,12 @@ def dashboard_full(db: Session = Depends(get_db)):
 @app.get("/scheduler-data")
 def scheduler_data(db: Session = Depends(get_db)):
     engineers = [
-        "Rakshitha",
-        "Gokul",
-        "Javeri",
-        "Divya"
-    ]
+    "Rakshitha",
+    "Gokul",
+    "Javeri",
+    "Divya",
+    "Sandeep"
+]
 
     result = []
 
@@ -426,6 +427,7 @@ def capacity_data(db: Session = Depends(get_db)):
         {"name": "Gokul", "skill": "Integration"},
         {"name": "Javeri", "skill": "Integration"},
         {"name": "Divya", "skill": "Integration"},
+        {"name": "Sandeep", "skill": "Lead"},
     ]
 
     result = []
