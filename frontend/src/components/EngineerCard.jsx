@@ -75,7 +75,7 @@ export default function EngineerCard({ engineer }) {
       <div className="space-y-3">
 
         <Row
-          label="Pending"
+          label="Yet to Start"
           value={pending}
           color="bg-red-500"
         />

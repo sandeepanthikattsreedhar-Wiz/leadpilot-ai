@@ -31,6 +31,16 @@ export default function SchedulerPage() {
   const overloaded =
     team.filter((x) => x.overloaded).length;
 
+  const avgUtilization =
+    team.length > 0
+      ? Math.round(
+        team.reduce(
+          (sum, x) => sum + x.utilization,
+          0
+        ) / team.length
+      )
+      : 0;
+
   return (
     <div className="space-y-6">
 
@@ -50,6 +60,11 @@ export default function SchedulerPage() {
         <Card
           title="Overloaded"
           value={overloaded}
+        />
+
+        <Card
+          title="Avg Utilization"
+          value={`${avgUtilization}%`}
         />
 
       </div>
