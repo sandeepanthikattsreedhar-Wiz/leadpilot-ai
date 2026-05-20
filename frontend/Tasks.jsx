@@ -23,15 +23,15 @@ function getTimeAgo(dateString) {
 }
 export default function Tasks() {
   const emptyForm = {
-  task_title: "",
-  task_name: "",
-  assigned_to: "Rakshitha",
-  start_date: "",
-  end_date: "",
-  remarks: "",
-  status: "Yet to Start",
-  priority: "Medium",
-};
+    task_title: "",
+    task_name: "",
+    assigned_to: "Rakshitha",
+    start_date: "",
+    end_date: "",
+    remarks: "",
+    status: "Yet to Start",
+    priority: "Medium",
+  };
 
   const [form, setForm] = useState(emptyForm);
   const [tasks, setTasks] = useState([]);
@@ -46,12 +46,12 @@ export default function Tasks() {
   }, [search, filterStatus, filterOwner]);
 
   useEffect(() => {
-  const interval = setInterval(() => {
-    setTasks(prev => [...prev]);
-  }, 60000);
+    const interval = setInterval(() => {
+      setTasks(prev => [...prev]);
+    }, 60000);
 
-  return () => clearInterval(interval);
-}, []);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadTasks = async () => {
     const res = await fetch(
@@ -90,16 +90,16 @@ export default function Tasks() {
 
   // ---------------- EDIT ----------------
   const editTask = (task) => {
-   setForm({
-  task_title: task.task_title || "",
-  task_name: task.task_name || "",
-  assigned_to: task.assigned_to || "Rakshitha",
-  start_date: task.start_date || "",
-  end_date: task.end_date || "",
-  remarks: task.remarks || "",
-  status: task.status || "Yet to Start",
-  priority: task.priority || "Medium",
-});
+    setForm({
+      task_title: task.task_title || "",
+      task_name: task.task_name || "",
+      assigned_to: task.assigned_to || "Rakshitha",
+      start_date: task.start_date || "",
+      end_date: task.end_date || "",
+      remarks: task.remarks || "",
+      status: task.status || "Yet to Start",
+      priority: task.priority || "Medium",
+    });
 
     setEditingId(task.id);
   };
@@ -151,6 +151,7 @@ export default function Tasks() {
           <option>Gokul</option>
           <option>Javeri</option>
           <option>Divya</option>
+          <option>Sandeep</option>
         </select>
 
         <select
@@ -245,6 +246,8 @@ export default function Tasks() {
           <option>Gokul</option>
           <option>Javeri</option>
           <option>Divya</option>
+          <option>Sandeep</option>
+
         </select>
 
       </div>

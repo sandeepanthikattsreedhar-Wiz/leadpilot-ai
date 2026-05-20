@@ -177,52 +177,119 @@ def dashboard_full(db: Session = Depends(get_db)):
 
 @app.get("/scheduler-data")
 def scheduler_data(db: Session = Depends(get_db)):
+
     engineers = [
-    "Rakshitha",
-    "Gokul",
-    "Javeri",
-    "Divya",
-    "Sandeep"
-]
+        "Rakshitha",
+        "Gokul",
+        "Javeri",
+        "Divya",
+        "Sandeep"
+    ]
 
     result = []
 
     for name in engineers:
-        user_tasks = db.query(Task).filter(
+
+        # ✅ ALL TASKS
+        all_tasks = db.query(Task).filter(
             Task.assigned_to == name
         ).all()
 
-        total = len(user_tasks)
+        # ✅ ACTIVE TASKS ONLY (Exclude Completed)
+        active_tasks = [
+            t for t in all_tasks
+            if t.status != "Completed"
+        ]
 
-        pending = len([
-            t for t in user_tasks
+        # ✅ STATUS COUNTS
+        yet_to_start = len([
+            t for t in active_tasks
             if t.status == "Yet to Start"
         ])
 
-        progress = len([
-            t for t in user_tasks
+        in_progress = len([
+            t for t in active_tasks
             if t.status == "In Progress"
         ])
 
+        in_qa = len([
+            t for t in active_tasks
+            if t.status == "In QA"
+        ])
+
+        in_uat = len([
+            t for t in active_tasks
+            if t.status == "In UAT"
+        ])
+
+        in_production = len([
+            t for t in active_tasks
+            if t.status == "In Production"
+        ])
+
+        blocked = len([
+            t for t in active_tasks
+            if t.status == "Blocked"
+        ])
+
         completed = len([
-            t for t in user_tasks
+            t for t in all_tasks
             if t.status == "Completed"
         ])
 
-        available = total < 4
-        overloaded = total >= 4
+        # ✅ ACTIVE WORKLOAD
+        workload = len(active_tasks)
 
-        utilization = min(total * 25, 100)
+        # ✅ UTILIZATION
+        utilization = min(workload * 25, 100)
+
+        # ✅ LOAD STATUS
+        available = workload <= 2
+        overloaded = workload >= 5
+
+        # ✅ AI HEALTH SCORE
+        health_score = max(
+            0,
+            100 - (
+                blocked * 15 +
+                overloaded * 10 +
+                max(utilization - 80, 0)
+            )
+        )
+
+        # ✅ AI RECOMMENDATION
+        if overloaded:
+            recommendation = "Redistribute workload immediately"
+        elif blocked > 0:
+            recommendation = "Resolve blockers quickly"
+        elif utilization < 40:
+            recommendation = "Can take additional tasks"
+        else:
+            recommendation = "Balanced allocation"
 
         result.append({
             "name": name,
-            "tasks": total,
-            "pending": pending,
-            "progress": progress,
+
+            # totals
+            "tasks": workload,
             "completed": completed,
+
+            # statuses
+            "yet_to_start": yet_to_start,
+            "progress": in_progress,
+            "qa": in_qa,
+            "uat": in_uat,
+            "production": in_production,
+            "blocked": blocked,
+
+            # metrics
+            "utilization": utilization,
             "available": available,
             "overloaded": overloaded,
-            "utilization": utilization
+            "health_score": round(health_score),
+
+            # ai
+            "recommendation": recommendation
         })
 
     return result
@@ -313,16 +380,19 @@ def delete_meeting(
 
 @app.get("/performance-data")
 def performance_data(db: Session = Depends(get_db)):
+
     engineers = [
         "Rakshitha",
         "Gokul",
         "Javeri",
-        "Divya"
+        "Divya",
+        "Sandeep"
     ]
 
     result = []
 
     for name in engineers:
+
         tasks = db.query(Task).filter(
             Task.assigned_to == name
         ).all()
@@ -332,18 +402,33 @@ def performance_data(db: Session = Depends(get_db)):
             if t.status == "Completed"
         ])
 
-        pending = len([
+        yet_to_start = len([
             t for t in tasks
-            if t.status in [
-                "Yet to Start",
-                "In Progress"
-            ]
+            if t.status == "Yet to Start"
+        ])
+
+        progress = len([
+            t for t in tasks
+            if t.status == "In Progress"
+        ])
+
+        qa = len([
+            t for t in tasks
+            if t.status == "In QA"
+        ])
+
+        uat = len([
+            t for t in tasks
+            if t.status == "In UAT"
         ])
 
         result.append({
             "name": name,
             "completed": completed,
-            "pending": pending
+            "yet_to_start": yet_to_start,
+            "progress": progress,
+            "qa": qa,
+            "uat": uat
         })
 
     return result
@@ -463,78 +548,166 @@ def reports_data(db: Session = Depends(get_db)):
         if t.status == "Completed"
     ])
 
-    pending = len([
+    yet_to_start = len([
         t for t in tasks
         if t.status == "Yet to Start"
     ])
 
-    progress = len([
+    in_progress = len([
         t for t in tasks
         if t.status == "In Progress"
     ])
 
+    in_qa = len([
+        t for t in tasks
+        if t.status == "In QA"
+    ])
+
+    in_uat = len([
+        t for t in tasks
+        if t.status == "In UAT"
+    ])
+
+    in_production = len([
+        t for t in tasks
+        if t.status == "In Production"
+    ])
+
+    blocked = len([
+        t for t in tasks
+        if t.status == "Blocked"
+    ])
+
+    productivity = round(
+        (completed / total) * 100
+    ) if total > 0 else 0
+
+    # ---------------- OWNER ANALYTICS ----------------
     owners = {}
 
     for t in tasks:
         name = t.assigned_to or "Unassigned"
-        owners[name] = owners.get(name, 0) + 1
 
-    top_owner = "N/A"
+        if name not in owners:
+            owners[name] = 0
 
-    if owners:
-        top_owner = max(owners, key=owners.get)
+        owners[name] += 1
 
-    productivity = (
-        round((completed / total) * 100)
-        if total > 0 else 0
+    top_owner = (
+        max(owners, key=owners.get)
+        if owners else "N/A"
     )
 
-    weekly_body = f"""
-Team completed {completed} tasks this week.
-{pending} items are pending.
-{progress} items are in progress.
-Overall delivery health is stable.
-Productivity improved to {productivity}%.
-"""
+    owner_chart = [
+        {
+            "name": k,
+            "tasks": v
+        }
+        for k, v in owners.items()
+    ]
 
-    client_body = f"""
-Project execution is active.
-Completed items: {completed}
-Yet to Start items: {pending}
-In progress items: {progress}
-Expected milestone closures continue as planned.
-"""
+    # ---------------- STATUS CHART ----------------
+    status_chart = [
+        {"name": "Yet to Start", "value": yet_to_start},
+        {"name": "In Progress", "value": in_progress},
+        {"name": "In QA", "value": in_qa},
+        {"name": "In UAT", "value": in_uat},
+        {"name": "In Production", "value": in_production},
+        {"name": "Completed", "value": completed},
+        {"name": "Blocked", "value": blocked},
+    ]
 
-    risk_body = f"""
-1. {pending} pending tasks may impact timelines.
-2. Work in progress needs monitoring.
-3. Resource allocation should be reviewed.
-"""
+    # ---------------- RISK LEVEL ----------------
+    risk_level = "Low"
 
-    productivity_body = f"""
-Top contributor: {top_owner}
-Average closure rate: {productivity}%
-Yet to Start tasks count: {pending}
-Lead efficiency score: {min(productivity + 5, 100)}%
+    if blocked >= 3 or yet_to_start >= 10:
+        risk_level = "High"
+    elif blocked >= 1 or yet_to_start >= 5:
+        risk_level = "Medium"
+
+    # ---------------- AI INSIGHTS ----------------
+    insights = []
+
+    if blocked > 0:
+        insights.append(
+            f"{blocked} blocked tasks require immediate attention."
+        )
+
+    if yet_to_start > completed:
+        insights.append(
+            "Task initiation rate is slower than closure rate."
+        )
+
+    if in_qa >= 5:
+        insights.append(
+            "QA phase bottleneck detected."
+        )
+
+    if productivity >= 75:
+        insights.append(
+            "Team productivity is performing well."
+        )
+
+    if len(insights) == 0:
+        insights.append(
+            "Project execution is healthy."
+        )
+
+    # ---------------- RECOMMENDATIONS ----------------
+    recommendations = []
+
+    if blocked > 0:
+        recommendations.append(
+            "Conduct escalation review for blocked items."
+        )
+
+    if yet_to_start >= 5:
+        recommendations.append(
+            "Reprioritize backlog tasks."
+        )
+
+    if in_progress >= 8:
+        recommendations.append(
+            "Reduce parallel execution to avoid overload."
+        )
+
+    if productivity < 40:
+        recommendations.append(
+            "Increase follow-up frequency with owners."
+        )
+
+    # ---------------- EXECUTIVE SUMMARY ----------------
+    summary = f"""
+Overall project delivery is currently at {productivity}% productivity.
+{completed} tasks have been completed successfully.
+{in_progress} tasks are actively progressing.
+{blocked} tasks are blocked and require monitoring.
+Current project risk level is {risk_level}.
+Top contributor is {top_owner}.
 """
 
     return {
-        "weekly": {
-            "title": "Weekly Team Report",
-            "body": weekly_body.strip()
+        "kpis": {
+            "total": total,
+            "completed": completed,
+            "yet_to_start": yet_to_start,
+            "in_progress": in_progress,
+            "blocked": blocked,
+            "productivity": productivity,
+            "top_owner": top_owner,
+            "risk": risk_level
         },
-        "client": {
-            "title": "Client Status Report",
-            "body": client_body.strip()
+
+        "charts": {
+            "status": status_chart,
+            "owners": owner_chart
         },
-        "risks": {
-            "title": "Risk Summary Report",
-            "body": risk_body.strip()
-        },
-        "productivity": {
-            "title": "Productivity Report",
-            "body": productivity_body.strip()
-        }
+
+        "summary": summary.strip(),
+
+        "insights": insights,
+
+        "recommendations": recommendations
     }
 
 @app.get("/smart-insights")

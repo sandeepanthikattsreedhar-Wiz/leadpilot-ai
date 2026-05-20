@@ -1,231 +1,149 @@
 import { useEffect, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 
 export default function PerformancePage() {
-  const [teamData, setTeamData] = useState([]);
+  const [data, setData] = useState([]);
 
   useEffect(() => {
-    loadPerformance();
-
-    const timer = setInterval(
-      loadPerformance,
-      5000
-    );
-
-    return () => clearInterval(timer);
+    loadData();
   }, []);
 
-  const loadPerformance = async () => {
+  const loadData = async () => {
     try {
       const res = await fetch(
-        "http://127.0.0.1:8000/performance-data"
+        `${import.meta.env.VITE_API_URL}/performance-data`
       );
 
-      const data = await res.json();
-      setTeamData(data);
-    } catch (error) {
-      console.error(error);
+      const result = await res.json();
+
+      setData(result);
+    } catch (err) {
+      console.error(err);
     }
   };
-
-  if (teamData.length === 0) {
-    return (
-      <div className="text-lg font-medium">
-        Loading Performance...
-      </div>
-    );
-  }
-
-  const sorted = [...teamData].sort(
-    (a, b) => b.completed - a.completed
-  );
-
-  const topPerformer = sorted[0];
-
-  const lowPerformer =
-    sorted[sorted.length - 1];
-
-  const totalCompleted = teamData.reduce(
-    (sum, x) => sum + x.completed,
-    0
-  );
-
-  const leadScore =
-    totalCompleted === 0
-      ? 0
-      : Math.min(
-          Math.round(
-            (totalCompleted /
-              (totalCompleted +
-                teamData.reduce(
-                  (sum, x) =>
-                    sum + x.pending,
-                  0
-                ))) *
-              100
-          ),
-          100
-        );
-
-  const teamGrowth =
-    totalCompleted > 0
-      ? Math.min(
-          Math.round(
-            totalCompleted / 4
-          ),
-          25
-        )
-      : 0;
 
   return (
     <div className="space-y-6">
 
-      {/* KPI Cards */}
-      <div className="grid md:grid-cols-4 gap-5">
+      <div>
+        <h1 className="text-3xl font-bold">
+          Team Performance Dashboard
+        </h1>
 
-        <Card
-          title="Total Completed"
-          value={totalCompleted}
-        />
-
-        <Card
-          title="Top Performer"
-          value={topPerformer.name}
-        />
-
-        <Card
-          title="Your Lead Score"
-          value={`${leadScore}%`}
-          green
-        />
-
-        <Card
-          title="Needs Attention"
-          value={lowPerformer.name}
-          red
-        />
-
+        <p className="text-gray-500 mt-1">
+          Engineer-wise delivery performance
+        </p>
       </div>
 
-      {/* Chart */}
-      <div className="bg-white rounded-xl shadow p-5 h-96">
-        <h3 className="font-semibold mb-4">
-          Team Productivity
-        </h3>
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
 
-        <ResponsiveContainer
-          width="100%"
-          height="90%"
-        >
-          <BarChart data={teamData}>
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="completed" />
-            <Bar dataKey="pending" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+        {data.map((item, index) => {
+          const total =
+            item.completed +
+            item.pending +
+            item.progress +
+            item.qa +
+            item.uat;
 
-      {/* AI Cards */}
-      <div className="grid md:grid-cols-3 gap-5">
+          const efficiency =
+            total === 0
+              ? 0
+              : Math.round((item.completed / total) * 100);
 
-        <InsightCard
-          title="AI Insight"
-          text={`${topPerformer.name} has highest close rate. Give critical work.`}
-        />
+          return (
+            <div
+              key={index}
+              className="bg-white rounded-2xl shadow p-5 border border-slate-200"
+            >
 
-        <InsightCard
-          title="AI Suggestion"
-          text={`${lowPerformer.name} has high pending load. Rebalance tasks.`}
-        />
+              {/* HEADER */}
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    {item.name}
+                  </h2>
 
-        <InsightCard
-          title="Leadership Insight"
-          text={`Your team completion improved ${teamGrowth}% this week.`}
-        />
+                  <p className="text-sm text-gray-500">
+                    Implementation Engineer
+                  </p>
+                </div>
 
-      </div>
-
-      {/* Leaderboard */}
-      <div className="bg-white p-5 rounded-xl shadow">
-        <h3 className="font-semibold mb-4">
-          Leaderboard
-        </h3>
-
-        <div className="space-y-3">
-
-          {sorted.map(
-            (user, index) => (
-              <div
-                key={user.name}
-                className="flex justify-between border-b pb-2"
-              >
-                <span>
-                  #{index + 1}{" "}
-                  {user.name}
-                </span>
-
-                <span className="font-semibold">
-                  {user.completed} Completed
-                </span>
+                <div
+                  className={`text-sm font-bold px-3 py-1 rounded-full ${
+                    efficiency >= 80
+                      ? "bg-green-100 text-green-700"
+                      : efficiency >= 50
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {efficiency}%
+                </div>
               </div>
-            )
-          )}
 
-        </div>
+              {/* STATS */}
+              <div className="grid grid-cols-2 gap-3 mt-5">
+
+                <StatCard
+                  label="Completed"
+                  value={item.completed}
+                  color="green"
+                />
+
+                <StatCard
+                  label="Pending"
+                  value={item.pending}
+                  color="yellow"
+                />
+
+                <StatCard
+                  label="In Progress"
+                  value={item.progress}
+                  color="blue"
+                />
+
+                <StatCard
+                  label="QA/UAT"
+                  value={(item.qa || 0) + (item.uat || 0)}
+                  color="purple"
+                />
+              </div>
+
+              {/* PROGRESS BAR */}
+              <div className="mt-5">
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Efficiency</span>
+                  <span>{efficiency}%</span>
+                </div>
+
+                <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-3 bg-indigo-600 rounded-full transition-all"
+                    style={{ width: `${efficiency}%` }}
+                  ></div>
+                </div>
+              </div>
+
+            </div>
+          );
+        })}
+
       </div>
-
     </div>
   );
 }
 
-function Card({
-  title,
-  value,
-  green,
-  red,
-}) {
-  let color = "text-black";
-
-  if (green) color = "text-green-600";
-  if (red) color = "text-red-600";
+function StatCard({ label, value, color }) {
+  const colors = {
+    green: "bg-green-50 text-green-700",
+    yellow: "bg-yellow-50 text-yellow-700",
+    blue: "bg-blue-50 text-blue-700",
+    purple: "bg-purple-50 text-purple-700",
+  };
 
   return (
-    <div className="bg-white p-5 rounded-xl shadow">
-      <p className="text-gray-500">
-        {title}
-      </p>
-
-      <h2
-        className={`text-3xl font-bold ${color}`}
-      >
-        {value}
-      </h2>
-    </div>
-  );
-}
-
-function InsightCard({
-  title,
-  text,
-}) {
-  return (
-    <div className="bg-white p-5 rounded-xl shadow">
-      <h3 className="font-semibold mb-2">
-        {title}
-      </h3>
-
-      <p className="text-gray-600">
-        {text}
-      </p>
+    <div className={`rounded-xl p-3 ${colors[color]}`}>
+      <p className="text-xs">{label}</p>
+      <h3 className="text-2xl font-bold">{value}</h3>
     </div>
   );
 }
