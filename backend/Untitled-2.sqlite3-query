@@ -1,0 +1,24 @@
+-- database: ./leadpilot.db
+
+SELECT * FROM meetings;
+-- database: /path/to/database.db
+ALTER TABLE meetings
+ADD COLUMN decisions TEXT;
+
+ALTER TABLE meetings
+ADD COLUMN decisions TEXT;
+
+ALTER TABLE meetings
+ADD COLUMN risks TEXT;
+ALTER TABLE meetings
+ADD COLUMN participants TEXT;
+ALTER TABLE meetings
+ADD COLUMN recording_path TEXT;
+ALTER TABLE meetings
+ADD COLUMN ai_score INTEGER DEFAULT 0;
+ALTER TABLE meetings
+ADD COLUMN created_at DATETIME;
+ALTER TABLE meetings
+ADD COLUMN updated_at DATETIME;
+ALTER TABLE meetings
+ADD COLUMN vector_id TEXT;

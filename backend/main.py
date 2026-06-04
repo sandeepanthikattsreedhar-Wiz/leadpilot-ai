@@ -12,7 +12,7 @@ from ai_engine import generate_summary
 from pypdf import PdfReader
 from database import SessionLocal, engine, Base
 from migrate_dates import parse_date
-from models import FollowUp, Task
+from models import FollowUp, FollowUpLog, Task
 from schemas import TaskCreate
 from models import Task, Meeting, MeetingLog
 from schemas import TaskCreate, MeetingCreate, NotesUpdate
@@ -23,6 +23,10 @@ from vector_store import collection
 import uuid
 from pypdf import PdfReader
 from ai_memory import store_document, search_similar
+from meeting_ai import (
+    transcribe_audio,
+    generate_meeting_summary
+)
 
 client = OpenAI(api_key=os.getenv("GROQ_API_KEY"),base_url="https://api.groq.com/openai/v1")
 Base.metadata.create_all(bind=engine)
@@ -129,6 +133,9 @@ def update_task(task_id: int, payload: TaskCreate, db: Session = Depends(get_db)
 
     # ✅ THIS IS THE FIX
     task.last_updated = datetime.utcnow()
+    task.next_followup_date = payload.next_followup_date
+    task.followup_status = payload.followup_status
+    task.followup_notes = payload.followup_notes
 
     db.commit()
     db.refresh(task)
@@ -334,8 +341,34 @@ def add_meeting(
     db.refresh(item)
     return item
 
+@app.put("/meetings/{meeting_id}")
+def update_meeting(
+    meeting_id: int,
+    data: MeetingCreate,
+    db: Session = Depends(get_db)
+):
 
-@app.put("/meetings/{meeting_id}/notes")
+    meeting = db.query(Meeting).filter(
+        Meeting.id == meeting_id
+    ).first()
+
+    if not meeting:
+        raise HTTPException(
+            status_code=404,
+            detail="Meeting not found"
+        )
+
+    meeting.title = data.title
+    meeting.time = data.time
+    meeting.owner = data.owner
+    meeting.agenda = data.agenda
+
+    db.commit()
+    db.refresh(meeting)
+
+    return meeting
+
+@app.post("/meetings/{meeting_id}/notes")
 def update_notes(
     meeting_id: int,
     data: NotesUpdate,
@@ -439,8 +472,8 @@ from datetime import datetime, timedelta
 def followup_data(db: Session = Depends(get_db)):
 
     tasks = db.query(Task).filter(
-        Task.status != "Completed"
-    ).all()
+    Task.status == "In Progress"
+).all()
 
     result = []
 
@@ -830,3 +863,238 @@ async def analyze_doc(
 
     except Exception as e:
         return {"summary": f"Error: {str(e)}", "similar": []}
+    
+@app.post("/meeting-ai/{meeting_id}")
+async def meeting_ai(
+    meeting_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+
+    # -----------------------------
+    # FIND MEETING
+    # -----------------------------
+    meeting = db.query(Meeting).filter(
+        Meeting.id == meeting_id
+    ).first()
+
+    if not meeting:
+        raise HTTPException(
+            status_code=404,
+            detail="Meeting not found"
+        )
+
+    # -----------------------------
+    # CREATE TEMP FOLDER
+    # -----------------------------
+    os.makedirs("temp_audio", exist_ok=True)
+
+    # -----------------------------
+    # SAVE AUDIO FILE
+    # -----------------------------
+    file_path = f"temp_audio/{meeting_id}_{file.filename}"
+
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
+
+    # -----------------------------
+    # TRANSCRIBE AUDIO
+    # -----------------------------
+    transcript = transcribe_audio(file_path)
+
+    # -----------------------------
+    # GENERATE AI SUMMARY
+    # -----------------------------
+    summary = generate_meeting_summary(transcript)
+
+    # -----------------------------
+    # SAVE TO DATABASE
+    # -----------------------------
+    meeting.transcript = transcript
+    meeting.ai_summary = summary
+    meeting.notes = summary
+
+    db.commit()
+
+    # -----------------------------
+    # STORE IN AI MEMORY
+    # -----------------------------
+    store_document(
+        f"meeting_{meeting.id}",
+        transcript + "\n" + summary
+    )
+
+    # -----------------------------
+    # RETURN RESPONSE
+    # -----------------------------
+    return {
+        "message": "Meeting processed successfully",
+        "transcript": transcript,
+        "summary": summary
+    }
+
+@app.post("/followup-log/{task_id}")
+@app.post("/followup-log/{task_id}")
+def add_followup_log(
+    task_id: int,
+    data: dict,
+    db: Session = Depends(get_db)
+):
+
+    task = db.query(Task).filter(
+        Task.id == task_id
+    ).first()
+
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+
+    log = FollowUpLog(
+        task_id=task_id,
+        status=data.get("status"),
+        remarks=data.get("remarks")
+    )
+
+    db.add(log)
+
+    # SAVE LATEST FOLLOWUP INTO TASK TABLE
+
+    task.followup_status = data.get("status")
+
+    task.followup_notes = data.get("remarks")
+
+    task.last_updated = datetime.utcnow()
+
+    db.commit()
+
+    return {
+        "message": "Follow-up saved"
+    }
+    
+@app.get("/followup-history/{task_id}")
+def get_followup_history(
+    task_id: int,
+    db: Session = Depends(get_db)
+):
+
+    logs = db.query(FollowUpLog).filter(
+        FollowUpLog.task_id == task_id
+    ).order_by(
+        FollowUpLog.created_at.desc()
+    ).all()
+
+    return logs
+
+@app.get("/capacity-summary")
+def capacity_summary(db: Session = Depends(get_db)):
+
+    tasks = db.query(Task).all()
+
+    total_tasks = len(tasks)
+
+    active_tasks = len(
+        [x for x in tasks if x.status != "Completed"]
+    )
+
+    high_risk = len(
+        [
+            x for x in tasks
+            if x.priority == "High"
+            and x.status != "Completed"
+        ]
+    )
+
+    completed = len(
+        [
+            x for x in tasks
+            if x.status == "Completed"
+        ]
+    )
+
+    delivery_health = 100
+
+    delivery_health -= high_risk * 3
+
+    delivery_health = max(
+        0,
+        min(100, delivery_health)
+    )
+
+    return {
+        "total_tasks": total_tasks,
+        "active_tasks": active_tasks,
+        "high_risk_tasks": high_risk,
+        "completed_tasks": completed,
+        "delivery_health": delivery_health
+    }
+    
+@app.get("/upcoming-deadlines")
+def upcoming_deadlines(
+db: Session = Depends(get_db)
+):
+
+    today = datetime.utcnow()
+
+    tasks = db.query(Task).all()
+
+    result = []
+
+    for t in tasks:
+
+        if t.status == "Completed":
+            continue
+
+        end = parse_date(t.end_date)
+
+        if not end:
+            continue
+
+        days = (end - today).days
+
+        if days <= 7:
+
+            result.append({
+                "task": t.task_title,
+                "owner": t.assigned_to,
+                "days": days
+            })
+
+    return sorted(
+        result,
+        key=lambda x: x["days"]
+    )
+    
+@app.get("/engineer-task-summary")
+def engineer_task_summary(
+db: Session = Depends(get_db)
+):
+
+    tasks = db.query(Task).all()
+
+    users = {}
+
+    for t in tasks:
+
+        owner = t.assigned_to
+
+        if owner not in users:
+
+            users[owner] = {
+                "name": owner,
+                "high": 0,
+                "medium": 0,
+                "low": 0
+            }
+
+        if t.priority == "High":
+            users[owner]["high"] += 1
+
+        elif t.priority == "Medium":
+            users[owner]["medium"] += 1
+
+        else:
+            users[owner]["low"] += 1
+
+    return list(users.values())

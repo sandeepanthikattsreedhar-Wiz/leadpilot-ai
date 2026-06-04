@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 
 export default function CapacityPage() {
   const [team, setTeam] = useState([]);
+  const [summary, setSummary] = useState({});
+  const [deadlines, setDeadlines] = useState([]);
 
   const [selectedUser, setSelectedUser] =
     useState(null);
@@ -32,10 +34,23 @@ export default function CapacityPage() {
       const data = await res.json();
 
       setTeam(data);
+      const summaryRes = await fetch(`${import.meta.env.VITE_API_URL}/capacity-summary`);
+
+      const summaryData =
+        await summaryRes.json();
+
+      setSummary(summaryData);
+      const deadlineRes = await fetch(`${import.meta.env.VITE_API_URL}/upcoming-deadlines`);
+
+      setDeadlines(
+        await deadlineRes.json()
+      );
     } catch (error) {
       console.error(error);
     }
   };
+
+
 
   const data = useMemo(() => {
     return team.map((x) => {
@@ -83,13 +98,13 @@ export default function CapacityPage() {
     Math.min(
       100,
       100 -
-        overloaded.length * 15 -
-        Math.round(
-          data.reduce(
-            (sum, x) => sum + x.percent,
-            0
-          ) / data.length - 75
-        )
+      overloaded.length * 15 -
+      Math.round(
+        data.reduce(
+          (sum, x) => sum + x.percent,
+          0
+        ) / data.length - 75
+      )
     )
   );
 
@@ -181,31 +196,56 @@ export default function CapacityPage() {
       <div className="grid md:grid-cols-4 gap-5">
 
         <KpiCard
-          title="Overloaded"
-          value={overloaded.length}
-          color="red"
+          title="Total Tasks"
+          value={summary.total_tasks}
         />
 
         <KpiCard
-          title="Available"
-          value={available.length}
-          color="green"
+          title="Active"
+          value={summary.active_tasks}
         />
 
         <KpiCard
-          title="Balanced"
-          value={balanced.length}
-          color="blue"
+          title="High Risk"
+          value={summary.high_risk_tasks}
         />
 
         <KpiCard
-          title="AI Health"
-          value={`${workforceHealth}%`}
-          color="purple"
+          title="Completed"
+          value={summary.completed_tasks}
+        />
+
+        <KpiCard
+          title="Delivery Health"
+          value={`${summary.delivery_health}%`}
         />
 
       </div>
+      <div className="bg-white rounded-3xl p-6">
 
+        <h2 className="text-xl font-bold mb-4">
+          Upcoming Deadlines
+        </h2>
+
+        {deadlines.map(d => (
+
+          <div
+            key={d.task}
+            className="flex justify-between py-2 border-b"
+          >
+
+            <span>{d.task}</span>
+
+            <span>{d.owner}</span>
+
+            <span>
+              {d.days} day(s)
+            </span>
+
+          </div>
+
+        ))}
+      </div>
       {/* AI INSIGHTS */}
       <div className="bg-white/70 backdrop-blur-xl border border-purple-100 rounded-3xl shadow-xl p-6">
 
@@ -351,12 +391,12 @@ export default function CapacityPage() {
 
                 <p className="text-sm text-slate-600 mt-2">
                   {selectedUser.status ===
-                  "Overloaded"
+                    "Overloaded"
                     ? "Reduce workload and redistribute tasks."
                     : selectedUser.status ===
                       "Available"
-                    ? "Can take additional project assignments."
-                    : "Current workload is balanced."}
+                      ? "Can take additional project assignments."
+                      : "Current workload is balanced."}
                 </p>
               </div>
 
@@ -411,8 +451,8 @@ function EngineerCard({
     user.status === "Overloaded"
       ? "from-red-500 to-rose-500"
       : user.status === "Available"
-      ? "from-green-500 to-emerald-500"
-      : "from-blue-500 to-indigo-500";
+        ? "from-green-500 to-emerald-500"
+        : "from-blue-500 to-indigo-500";
 
   return (
     <div className="border border-purple-100 rounded-3xl p-5 bg-gradient-to-r from-white to-purple-50">
@@ -432,15 +472,14 @@ function EngineerCard({
         <div className="text-right">
 
           <div
-            className={`inline-flex px-4 py-2 rounded-full text-sm font-semibold ${
-              user.status ===
+            className={`inline-flex px-4 py-2 rounded-full text-sm font-semibold ${user.status ===
               "Overloaded"
-                ? "bg-red-100 text-red-700"
-                : user.status ===
-                  "Available"
+              ? "bg-red-100 text-red-700"
+              : user.status ===
+                "Available"
                 ? "bg-green-100 text-green-700"
                 : "bg-blue-100 text-blue-700"
-            }`}
+              }`}
           >
             {user.status}
           </div>

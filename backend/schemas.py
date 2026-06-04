@@ -9,6 +9,9 @@ class TaskCreate(BaseModel):
     remarks: str
     status: str = "Yet to Start"
     priority: str = "Medium"
+    next_followup_date: str | None = None
+    followup_status: str = "Pending"
+    followup_notes: str = ""
 
 class MeetingCreate(BaseModel):
     title: str

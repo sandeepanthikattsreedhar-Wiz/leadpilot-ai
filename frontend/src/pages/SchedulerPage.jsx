@@ -15,7 +15,7 @@ export default function SchedulerPage() {
   const loadScheduler = async () => {
     try {
       const res = await fetch(
-        "http://127.0.0.1:8000/scheduler-data"
+        `${import.meta.env.VITE_API_URL}/scheduler-data`
       );
 
       const data = await res.json();

@@ -28,18 +28,29 @@ class Task(Base):
     priority = Column(String, default="Medium")
     start_date_dt = Column(DateTime)
     end_date_dt = Column(DateTime)
+    next_followup_date = Column(String)
+    followup_status = Column(String, default="Pending")
+    followup_notes = Column(String)
 
 
 class Meeting(Base):
     __tablename__ = "meetings"
 
     id = Column(Integer, primary_key=True, index=True)
+
     title = Column(String)
     time = Column(String)
     owner = Column(String)
     agenda = Column(String)
+
     notes = Column(String)
-    score = Column(Integer)
+
+    # NEW
+    transcript = Column(String)
+    ai_summary = Column(String)
+    action_items = Column(String)
+
+    score = Column(Integer, default=0)
 
 class MeetingLog(Base):
     __tablename__ = "meeting_logs"
@@ -64,3 +75,19 @@ class FollowUp(Base):
     default=datetime.utcnow,
     onupdate=datetime.utcnow
 )
+    
+class FollowUpLog(Base):
+    __tablename__ = "followup_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    task_id = Column(Integer)
+
+    status = Column(String)
+
+    remarks = Column(String)
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
