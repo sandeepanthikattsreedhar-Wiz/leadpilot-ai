@@ -1,148 +1,267 @@
-export default function EngineerCard({ engineer }) {
-  const {
-    name,
-    tasks,
-    pending,
-    progress,
-    completed,
-    available
-  } = engineer;
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+} from "recharts";
 
-  const busy = tasks >= 4;
+export default function EngineerCard({
+  engineer,
+}) {
+  const data = [
+    {
+      name: "Used",
+      value: engineer.utilization,
+    },
+    {
+      name: "Free",
+      value:
+        100 - engineer.utilization,
+    },
+  ];
 
-  const badgeStyle = available
-    ? "bg-green-100 text-green-700"
-    : "bg-red-100 text-red-700";
+  const COLORS = [
+    engineer.overloaded
+      ? "#ef4444"
+      : engineer.utilization > 70
+      ? "#f59e0b"
+      : "#8b5cf6",
+    "#e5e7eb",
+  ];
 
-  const utilization = Math.min(tasks * 25, 100);
+  const healthColor =
+    engineer.health_score >= 80
+      ? "text-green-600"
+      : engineer.health_score >= 50
+      ? "text-yellow-600"
+      : "text-red-600";
 
   return (
-<div className="glass card-hover rounded-2xl p-5 space-y-4">
+    <div className="relative overflow-hidden rounded-3xl border border-purple-200 bg-gradient-to-br from-white to-purple-50 shadow-xl p-5 transition hover:scale-[1.02]">
+
+      {/* Glow */}
+      <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-300 opacity-20 blur-3xl rounded-full"></div>
 
       {/* Header */}
-  <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start relative z-10">
 
         <div>
-          <h3 className="text-xl font-bold">
-            {name}
-          </h3>
-
-           <div>
-      <h3 className="text-xl font-bold">{name}</h3>
-      <p className="text-sm text-slate-500">
-        Implementation Engineer
-      </p>
-    </div>
-    <span className={`px-3 py-1 rounded-full text-sm ${
-      available
-        ? "bg-green-100 text-green-700"
-        : "bg-red-100 text-red-700"
-    }`}>
-      {available ? "Available" : "Busy"}
-    </span>
-        </div>
-
-        <span
-          className={`px-3 py-1 rounded-full text-sm font-medium ${badgeStyle}`}
-        >
-          {available ? "Available" : "Busy"}
-        </span>
-
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
-    <div className="bg-white/50 p-3 rounded-xl">
-      <p className="text-sm text-gray-500">Tasks</p>
-      <h2 className="text-2xl font-bold">{tasks}</h2>
-    </div>
-
-          <h2 className="text-3xl font-bold mt-1">
-            {tasks}
+          <h2 className="text-2xl font-bold text-slate-800">
+            {engineer.name}
           </h2>
+
+          <p className="text-sm text-slate-500 mt-1">
+            AI Delivery Engineer
+          </p>
         </div>
 
-        <div className="bg-white/50 p-3 rounded-xl">
-      <p className="text-sm text-gray-500">Completed</p>
-      <h2 className="text-2xl font-bold text-green-600">
-        {completed}
-      </h2>
-    </div>
-
-      
-
-      {/* Breakdown */}
-      <div className="space-y-3">
-
-        <Row
-          label="Yet to Start"
-          value={pending}
-          color="bg-red-500"
-        />
-
-        <Row
-          label="In Progress"
-          value={progress}
-          color="bg-amber-500"
-        />
-
-        <Row
-          label="Completed"
-          value={completed}
-          color="bg-green-500"
-        />
-
+        <div
+          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            engineer.overloaded
+              ? "bg-red-100 text-red-600"
+              : engineer.available
+              ? "bg-green-100 text-green-700"
+              : "bg-yellow-100 text-yellow-700"
+          }`}
+        >
+          {engineer.overloaded
+            ? "Overloaded"
+            : engineer.available
+            ? "Available"
+            : "Balanced"}
+        </div>
       </div>
 
-      {/* Overload Alert */}
-      {busy && (
-        <div className="bg-red-50 text-red-700 text-sm px-4 py-2 rounded-xl font-medium">
-          Overloaded Resource
-        </div>
-      )}
+      {/* Chart + Metrics */}
+      <div className="grid grid-cols-2 gap-4 mt-6 relative z-10">
 
-      {/* Utilization */}
-      <div>
-        <div className="flex justify-between text-sm mb-1">
-          <span className="text-gray-500">
-            Utilization
+        {/* Circular Chart */}
+        <div className="h-40 relative">
+
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+          >
+            <PieChart>
+              <Pie
+                data={data}
+                innerRadius={45}
+                outerRadius={65}
+                dataKey="value"
+                stroke="none"
+              >
+                {data.map(
+                  (entry, index) => (
+                    <Cell
+                      key={index}
+                      fill={COLORS[index]}
+                    />
+                  )
+                )}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+
+          <div className="absolute inset-0 flex items-center justify-center flex-col">
+            <p className="text-3xl font-bold text-slate-800">
+              {engineer.utilization}%
+            </p>
+
+            <p className="text-xs text-slate-500">
+              Utilized
+            </p>
+          </div>
+        </div>
+
+        {/* Insights */}
+        <div className="space-y-3">
+
+          <Metric
+            label="Active Tasks"
+            value={engineer.tasks}
+          />
+
+          <Metric
+            label="Completed"
+            value={engineer.completed}
+          />
+
+          <Metric
+            label="Blocked"
+            value={engineer.blocked}
+          />
+
+          <div>
+            <p className="text-xs text-slate-500">
+              Delivery Health
+            </p>
+
+            <p
+              className={`text-xl font-bold ${healthColor}`}
+            >
+              {engineer.health_score}%
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Status Breakdown */}
+      <div className="mt-6 relative z-10">
+
+        <h3 className="text-sm font-semibold text-slate-700 mb-3">
+          Task Pipeline
+        </h3>
+
+        <div className="flex flex-wrap gap-2">
+
+          <Tag
+            label="Yet to Start"
+            value={engineer.yet_to_start}
+            color="bg-slate-200 text-slate-700"
+          />
+
+          <Tag
+            label="Progress"
+            value={engineer.progress}
+            color="bg-blue-100 text-blue-700"
+          />
+
+          <Tag
+            label="QA"
+            value={engineer.qa}
+            color="bg-amber-100 text-amber-700"
+          />
+
+          <Tag
+            label="UAT"
+            value={engineer.uat}
+            color="bg-indigo-100 text-indigo-700"
+          />
+
+          <Tag
+            label="Production"
+            value={engineer.production}
+            color="bg-green-100 text-green-700"
+          />
+
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="mt-6 relative z-10">
+
+        <div className="flex justify-between text-xs mb-2">
+          <span className="text-slate-500">
+            Sprint Load
           </span>
 
           <span className="font-semibold">
-            {utilization}%
+            {engineer.tasks}/5
           </span>
         </div>
 
-        <div className="h-3 bg-slate-200 rounded-full">
+        <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+
           <div
-            className="h-3 rounded-full bg-blue-600"
+            className={`h-3 rounded-full ${
+              engineer.overloaded
+                ? "bg-red-500"
+                : engineer.utilization > 70
+                ? "bg-yellow-500"
+                : "bg-purple-600"
+            }`}
             style={{
-              width: `${utilization}%`
+              width: `${engineer.utilization}%`,
             }}
           ></div>
+
         </div>
+      </div>
+
+      {/* AI Recommendation */}
+      <div className="mt-6 relative z-10 bg-purple-100 border border-purple-200 rounded-2xl p-4">
+
+        <p className="text-xs text-purple-600 font-semibold mb-1">
+          AI Recommendation
+        </p>
+
+        <p className="text-sm text-slate-700">
+          {engineer.recommendation}
+        </p>
       </div>
 
     </div>
   );
 }
 
-function Row({ label, value, color }) {
+function Metric({
+  label,
+  value,
+}) {
   return (
     <div>
-      <div className="flex justify-between text-sm mb-1">
-        <span>{label}</span>
-        <span>{value}</span>
-      </div>
+      <p className="text-xs text-slate-500">
+        {label}
+      </p>
 
-      <div className="h-2 bg-slate-200 rounded-full">
-        <div
-          className={`h-2 rounded-full ${color}`}
-          style={{
-            width: `${Math.min(value * 25, 100)}%`
-          }}
-        ></div>
-      </div>
+      <p className="text-lg font-bold text-slate-800">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function Tag({
+  label,
+  value,
+  color,
+}) {
+  return (
+    <div
+      className={`px-3 py-1 rounded-full text-xs font-medium ${color}`}
+    >
+      {label}: {value}
     </div>
   );
 }

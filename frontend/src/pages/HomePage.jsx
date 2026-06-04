@@ -25,7 +25,7 @@ export default function Dashboard() {
   const loadDashboard = async () => {
     try {
       const res = await fetch(
-        "http://127.0.0.1:8000/dashboard-full"
+        'http://127.0.0.1:8000/dashboard-full'
       );
 
       const json = await res.json();
