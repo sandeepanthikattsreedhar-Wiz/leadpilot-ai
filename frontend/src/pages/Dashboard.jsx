@@ -5,19 +5,22 @@ import {
   XAxis, YAxis, CartesianGrid
 } from "recharts";
 
+const API_KEY = import.meta.env.VITE_APP_API_KEY;
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function Dashboard() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-  loadDashboard();
-
-  const timer = setInterval(loadDashboard, 5000);
-
-  return () => clearInterval(timer);
-}, []);
+    loadDashboard();
+    const timer = setInterval(loadDashboard, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loadDashboard = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/dashboard-full`);
+    const res = await fetch(`${API_URL}/dashboard-full`, {
+      headers: { "X-API-Key": API_KEY }
+    });
     const json = await res.json();
     setData(json);
   };
@@ -40,7 +43,6 @@ export default function Dashboard() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Executive Dashboard</h1>
 
-      {/* KPI Cards */}
       <div className="grid md:grid-cols-4 gap-5">
         <Card title="Total Tasks" value={data.stats.total} />
         <Card title="Completed" value={data.stats.completed} />
@@ -48,7 +50,6 @@ export default function Dashboard() {
         <Card title="In Progress" value={data.stats.inprogress} />
       </div>
 
-      {/* Charts */}
       <div className="grid md:grid-cols-2 gap-5">
         <div className="bg-white p-5 rounded-2xl shadow">
           <h3 className="font-semibold mb-3">Task Status</h3>
@@ -70,12 +71,7 @@ export default function Dashboard() {
           <div className="h-72">
             <ResponsiveContainer>
               <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  outerRadius={100}
-                  label
-                >
+                <Pie data={pieData} dataKey="value" outerRadius={100} label>
                   <Cell />
                   <Cell />
                   <Cell />
@@ -87,16 +83,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Productivity */}
       <div className="bg-white p-6 rounded-2xl shadow">
-        <h3 className="text-xl font-semibold">
-          Team Productivity Score
-        </h3>
-
-        <div className="mt-4 text-5xl font-bold">
-          {data.productivity}%
-        </div>
-
+        <h3 className="text-xl font-semibold">Team Productivity Score</h3>
+        <div className="mt-4 text-5xl font-bold">{data.productivity}%</div>
         <div className="mt-3 bg-slate-200 h-4 rounded-full">
           <div
             className="bg-green-500 h-4 rounded-full"
@@ -105,18 +94,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Tasks */}
       <div className="bg-white p-6 rounded-2xl shadow">
-        <h3 className="text-xl font-semibold mb-4">
-          Recent Tasks
-        </h3>
-
+        <h3 className="text-xl font-semibold mb-4">Recent Tasks</h3>
         <div className="space-y-3">
           {data.recent.map((task) => (
-            <div
-              key={task.id}
-              className="border rounded-xl p-4 flex justify-between"
-            >
+            <div key={task.id} className="border rounded-xl p-4 flex justify-between">
               <span>{task.title}</span>
               <span>{task.status}</span>
             </div>
